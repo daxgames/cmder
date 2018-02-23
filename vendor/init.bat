@@ -9,6 +9,11 @@
 :: Use -v command line arg or set to > 0 for verbose output to aid in debugging.
 set verbose-output=0
 
+:: Get the absolute path to the default working directory
+pushd %0\..\..
+set "CMDER_ROOT_DEFAULT=%CD%"
+popd
+
 :var_loop
     if "%~1" == "" (
         goto :start
@@ -55,7 +60,7 @@ if not defined CMDER_ROOT (
     if defined ConEmuDir (
         for /f "delims=" %%i in ("%ConEmuDir%\..\..") do set "CMDER_ROOT=%%~fi"
     ) else (
-        for /f "delims=" %%i in ("%~dp0\..") do set "CMDER_ROOT=%%~fi"
+        set CMDER_ROOT=%CMDER_ROOT_DEFAULT%
     )
 )
 
@@ -378,4 +383,3 @@ exit /b
 
     :: looks like we have the same versions.
     exit /b 0
-
