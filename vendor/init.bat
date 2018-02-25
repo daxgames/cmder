@@ -10,6 +10,11 @@
 set verbose-output=0
 set debug-output=0
 
+:: Get the absolute path to the default working directory
+pushd %0\..\..
+set "CMDER_ROOT_DEFAULT=%CD%"
+popd
+
 :var_loop
     if "%~1" == "" (
         goto :start
@@ -62,10 +67,8 @@ if not defined CMDER_ROOT (
             set "CMDER_ROOT=%%~fi"
         )
     ) else (
-        for /f "delims=" %%i in ("%~dp0\..") do (
-            call :debug-output init.bat - Setting CMDER_ROOT based off of "%~dp0\.."
-            set "CMDER_ROOT=%%~fi"
-        )
+        set CMDER_ROOT=%CMDER_ROOT_DEFAULT%
+        call :debug-output init.bat - Setting CMDER_ROOT to the deafult "%CMDER_ROOT_DEFAULT%"
     )
 )
 
