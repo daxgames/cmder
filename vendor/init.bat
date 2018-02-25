@@ -402,7 +402,7 @@ exit /b
 
     :: looks like we have the same versions.
     exit /b 0
-    
+
 :enhance_path
     setlocal enabledelayedexpansion
     set "find_query=%~1"
