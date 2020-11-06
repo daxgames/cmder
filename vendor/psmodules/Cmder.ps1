@@ -78,7 +78,8 @@ function Configure-Git($gitRoot, $gitType, $gitPathUser){
     # using locally installed Git Path Config.
     if ($gitType -eq 'VENDOR') {
         # If User Git is installed replace its path config with Newer Vendored Git Path
-        if ($gitPathUser -ne '') {
+        if ($gitPathUser -ne '' -and $gitPathUser -ne $null) {
+            write-host  "gitPathUser: $gitPathUser"
             # write-host "Replacing $gitPathUser with $gitRoot in the path"
             $gitPathUserEsc = $gitPathUser.replace('\','\\').replace('(','\(').replace(')','\)')
 
