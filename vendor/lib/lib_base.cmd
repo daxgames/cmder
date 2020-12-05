@@ -1,5 +1,8 @@
 @echo off
 
+if not defined lib_base_calls set lib_base_calls=0
+set /a "lib_base_calls=%lib_base_calls%+1"
+
 if "%~1" == "/h" (
     %lib_base% help "%~0"
     exit /b
