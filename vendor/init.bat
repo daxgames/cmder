@@ -50,11 +50,11 @@ set "CMDER_BIN=%CMDER_ROOT%\bin"
 set "CMDERR_BIN=%CMDER_ROOT%\vendor\bin"
 
 call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
-call "%cmder_root%\vendor\lib\lib_base"
+:: call "%cmder_root%\vendor\lib\lib_base"
 :: call "%cmder_root%\vendor\lib\lib_path"
 :: call "%cmder_root%\vendor\lib\lib_console"
-call "%cmder_root%\vendor\lib\lib_git"
-call "%cmder_root%\vendor\lib\lib_profile"
+:: call "%cmder_root%\vendor\lib\lib_git"
+:: call "%cmder_root%\vendor\lib\lib_profile"
 
 :var_loop
     if "%~1" == "" (
@@ -129,7 +129,7 @@ goto var_loop
 
 :start
 :: Sets CMDER_SHELL, CMDER_CLINK, CMDER_ALIASES
-%lib_base% cmder_shell
+call "%CMDERR_BIN%\cmder_shell.cmd"
 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - debug_output=%debug_output%"
 
@@ -204,17 +204,17 @@ if defined GIT_INSTALL_ROOT (
 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Looking for Git install root..."
 
 :: get the version information for vendored git binary
-%lib_git% read_version VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd"
-%lib_git% validate_version VENDORED %GIT_VERSION_VENDORED%
+call "%CMDERR_BIN%\cmder_git_read_version.cmd" VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd"
+call "%CMDERR_BIN%\cmder_git_validate_version.cmd" VENDORED %GIT_VERSION_VENDORED%
 
 :: check if git is in path...
 for /F "delims=" %%F in ('where git.exe 2^>nul') do (
     :: get the absolute path to the user provided git binary
-    %lib_git% set_user_git_path "%%~dpF"
-    %lib_git% is_git_shim "%%~dpF"
-    %lib_git% get_user_git_version
+    call "%CMDERR_BIN%\cmder_git_set_user_git_path.cmd" "%%~dpF"
+    call "%CMDERR_BIN%\cmder_git_is_git_shim.cmd" "%%~dpF"
+    call "%CMDERR_BIN%\cmder_git_get_user_git_version.cmd"
     if ERRORLEVEL 0 (
-        %lib_git% compare_git_versions
+        call "%CMDERR_BIN%\cmder_git_compare_git_versions.cmd"
     ) else (
         :: compare the user git version against the vendored version
         :: if the user provided git executable is not found
@@ -326,9 +326,9 @@ call "%CMDERR_BIN%\cmder_enhance_path.cmd" "%CMDER_ROOT%" append
 
 :: Drop *.bat and *.cmd files into "%CMDER_ROOT%\config\profile.d"
 :: to run them at startup.
-%lib_profile% run_profile_d "%CMDER_ROOT%\config\profile.d"
+call "%CMDERR_BIN\cmder_profile_d.cmd" "%CMDER_ROOT%\config\profile.d"
 if defined CMDER_USER_CONFIG (
-  %lib_profile% run_profile_d "%CMDER_USER_CONFIG%\profile.d"
+  call "%CMDERR_BIN%\profile_d.cmd" "%CMDER_USER_CONFIG%\profile.d"
 )
 
 :USER_ALIASES
@@ -358,7 +358,7 @@ if "%CMDER_ALIASES%" == "1" (
       echo Creating initial user_aliases store in "%user_aliases%"...
       copy "%CMDER_ROOT%\vendor\user_aliases.cmd.default" "%user_aliases%"
   ) else (
-    %lib_base% update_legacy_aliases
+    call "%CMDERR_BIN%\cmder_update_legacy_aliases.cmd"
   )
 
   :: Update old 'user_aliases' to new self executing 'user_aliases.cmd'
