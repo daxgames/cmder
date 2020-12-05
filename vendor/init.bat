@@ -326,13 +326,14 @@ call "%CMDERR_BIN%\cmder_enhance_path.cmd" "%CMDER_ROOT%" append
 
 :: Drop *.bat and *.cmd files into "%CMDER_ROOT%\config\profile.d"
 :: to run them at startup.
-call "%CMDERR_BIN\cmder_profile_d.cmd" "%CMDER_ROOT%\config\profile.d"
+call "%CMDERR_BIN%\cmder_profile_d.cmd" "%CMDER_ROOT%\config\profile.d"
 if defined CMDER_USER_CONFIG (
-  call "%CMDERR_BIN%\profile_d.cmd" "%CMDER_USER_CONFIG%\profile.d"
+  call "%CMDERR_BIN%\cmder_profile_d.cmd" "%CMDER_USER_CONFIG%\profile.d"
 )
 
 :USER_ALIASES
 :: Allows user to override default aliases store using profile.d
+:: A
 :: scripts run above by setting the 'aliases' env variable.
 ::
 :: Note: If overriding default aliases store file the aliases
