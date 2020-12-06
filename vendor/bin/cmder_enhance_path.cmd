@@ -64,29 +64,29 @@
       echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:";%find_query%;"
       call :set_found
     )
-    call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var INSIDE PATH %find_query% - found=%found%"
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var INSIDE PATH %find_query% - found=%found%"
 
     if /i "%position%" == "append" (
       if "!found!" == "0" (
         echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:";%find_query%\"$"
         call :set_found
       )
-      call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var END PATH %find_query% - found=!found!"
+      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var END PATH %find_query% - found=!found!"
     ) else (
       if "!found!" == "0" (
         echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:"^\"%find_query%;"
         call :set_found
       )
-      call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var BEGIN PATH %find_query% - found=!found!"
+      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var BEGIN PATH %find_query% - found=!found!"
     )
     endlocal & set found=%found%
 
     if "%found%" == "0" (
         if /i "%position%" == "append" (
-            call "%CMDERR_BIN%\cmder_debug_output.cmd" :enhance_path "Appending '%add_to_path%'"
+            if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :enhance_path "Appending '%add_to_path%'"
             set "PATH=%PATH%;%add_to_path%"
         ) else (
-            call "%CMDERR_BIN%\cmder_debug_output.cmd" :enhance_path "Prepending '%add_to_path%'"
+            if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :enhance_path "Prepending '%add_to_path%'"
             set "PATH=%add_to_path%;%PATH%"
         )
 
@@ -96,8 +96,8 @@
     :end_enhance_path
     set "PATH=%PATH:;;=;%"
     if NOT "%OLD_PATH%" == "%PATH%" (
-      call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "END Env Var - PATH=%path%"
-      call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var %find_query% - found=%found%"
+      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "END Env Var - PATH=%path%"
+      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var %find_query% - found=%found%"
     )
     set "position="
     exit /b

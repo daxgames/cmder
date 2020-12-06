@@ -20,5 +20,6 @@
 :::.
 :::-------------------------------------------------------------------------------
 
-    if %debug_output% gtr 0 echo DEBUG(%~1): %~2 & echo.
+    REM if %debug_output% gtr 0 echo DEBUG(%~1): %~2 & echo.
+    echo DEBUG(%~1): %~2 & echo.
     exit /b

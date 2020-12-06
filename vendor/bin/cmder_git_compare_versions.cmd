@@ -17,9 +17,9 @@
     :: checks all major, minor, patch and build variables for the given arguments.
     :: whichever binary that has the most recent version will be used based on the return code.
 
-    call "%CMDERR_BIN%\cmder_debug_output.cmd" Comparing:
-    call "%CMDERR_BIN%\cmder_debug_output.cmd" %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%
-    call "%CMDERR_BIN%\cmder_debug_output.cmd" %~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" Comparing:
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" %~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%
 
     setlocal enabledelayedexpansion
     if !%~1_MAJOR! GTR !%~2_MAJOR! (endlocal & exit /b  1)

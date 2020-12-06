@@ -26,7 +26,7 @@
 :::-------------------------------------------------------------------------------
 
     :: process a `x.x.x.xxxx.x` formatted string
-    call "%CMDERR_BIN%\cmder_debug_output.cmd" :parse_version "ARGV[1]=%~1, ARGV[2]=%~2"
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :parse_version "ARGV[1]=%~1, ARGV[2]=%~2"
 
     setlocal enabledelayedexpansion
     for /F "tokens=1-3* delims=.,-" %%A in ("%2") do (
