@@ -258,24 +258,24 @@ if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
     if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
 
     :: Add git to the path
-    call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\cmd" ""
+    %lib_path% enhance_path "!GIT_INSTALL_ROOT!\cmd" ""
 
     :: Add the unix commands at the end to not shadow windows commands like more
     if %nix_tools% equ 1 (
-        call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Preferring Windows commands"
+        %lib_console% verbose_output "Preferring Windows commands"
         set "path_position=append"
     ) else (
-        call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Preferring *nix commands"
+        %lib_console% verbose_output "Preferring *nix commands"
         set "path_position="
     )
 
     if %nix_tools% geq 1 (
         if exist "!GIT_INSTALL_ROOT!\mingw32" (
-            call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\mingw32\bin" !path_position!
+            %lib_path% enhance_path "!GIT_INSTALL_ROOT!\mingw32\bin" !path_position!
         ) else if exist "!GIT_INSTALL_ROOT!\mingw64" (
-            call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\mingw64\bin" !path_position!
+            %lib_path% enhance_path "!GIT_INSTALL_ROOT!\mingw64\bin" !path_position!
         )
-        call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\usr\bin" !path_position!
+        %lib_path% enhance_path "!GIT_INSTALL_ROOT!\usr\bin" !path_position!
     )
 ) else if defined GIT_VERSION_USER (
     if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
