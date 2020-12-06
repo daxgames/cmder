@@ -50,11 +50,6 @@ set "CMDER_BIN=%CMDER_ROOT%\bin"
 set "CMDERR_BIN=%CMDER_ROOT%\vendor\bin"
 
 call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
-:: call "%cmder_root%\vendor\lib\lib_base"
-:: call "%cmder_root%\vendor\lib\lib_path"
-:: call "%cmder_root%\vendor\lib\lib_console"
-:: call "%cmder_root%\vendor\lib\lib_git"
-:: call "%cmder_root%\vendor\lib\lib_profile"
 
 :var_loop
     if "%~1" == "" (
@@ -436,3 +431,7 @@ if %time_init% gtr 0 (
   "%cmder_root%\vendor\bin\timer.cmd" "%CMDER_INIT_START%" "%CMDER_INIT_END%"
 )
 exit /b
+
+:debug_output
+    echo DEBUG(%~1): %~2 & echo.
+    exit /b

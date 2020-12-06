@@ -19,15 +19,19 @@
 :::-------------------------------------------------------------------------------
 
     :: now parse the version information into the corresponding variables
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :validate_version "ARGV[1]=%~1, ARGV[2]=%~2"
+    if %debug_output% gtr 0 call :debug_output :validate_version "ARGV[1]=%~1, ARGV[2]=%~2"
 
     call "%CMDERR_BIN%\cmder_git_parse_version.cmd" %~1 %~2
 
     :: ... and maybe display it, for debugging purposes.
-    REM if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :validate_version "Found Git Version for %~1: !%~1_MAJOR!.!%~1_MINOR!.!%~1_PATCH!.!%~1_BUILD!"
+    REM if %debug_output% gtr 0 call :debug_output :validate_version "Found Git Version for %~1: !%~1_MAJOR!.!%~1_MINOR!.!%~1_PATCH!.!%~1_BUILD!"
     if "%~1" == "VENDORED" (
-      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :validate_version "Found Git Version for %~1: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
+      if %debug_output% gtr 0 call :debug_output :validate_version "Found Git Version for %~1: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
     ) else (
-      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" :validate_version "Found Git Version for %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
+      if %debug_output% gtr 0 call :debug_output :validate_version "Found Git Version for %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
     )
+    exit /b
+
+:debug_output
+    echo DEBUG(%~1): %~2 & echo.
     exit /b
