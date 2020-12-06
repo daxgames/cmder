@@ -95,10 +95,6 @@
 
     :end_enhance_path
     set "PATH=%PATH:;;=;%"
-
-    echo add_to_path: %add_to_path%
-    echo position: %position%
-    echo PATH: %PATH%
     if NOT "%OLD_PATH%" == "%PATH%" (
       if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "END Env Var - PATH=%path%"
       if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd"  :enhance_path "Env Var %find_query% - found=%found%"
