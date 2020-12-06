@@ -234,9 +234,9 @@ set git_executable=
 REM echo Git User Path XXX: %CMDER_USER_GIT_PATH%
 
 :: our last hope: our own git...
-:VENDORED_GIT
 REM if exist "%CMDER_ROOT%\vendor\git-for-windows" (
 if not defined GIT_INSTALL_ROOT if defined GIT_VERSION_VENDORED (
+    :VENDORED_GIT
     set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
     set GIT_INSTALL_TYPE=VENDOR
     if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Newer user Git NOT found using vendored Git '%GIT_VERSION_VENDORED%'..."
