@@ -88,7 +88,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
             set "GIT_INSTALL_ROOT=%~2"
             shift
         ) else (
-            call "%CMDERR_BIN%\cmder_show_error.cmd" "The Git install root folder "%~2", you specified does not exist!"
+            call "%CMDERR_BIN%\cmder_show_error.cmd" "The Git install root folder '%~2', you specified does not exist!"
             exit /b
         )
     ) else if /i "%1"=="/nix_tools" (
@@ -123,6 +123,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
 goto var_loop
 
 :start
+
 :: Sets CMDER_SHELL, CMDER_CLINK, CMDER_ALIASES
 call "%CMDERR_BIN%\cmder_shell.cmd"
 if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
@@ -250,8 +251,12 @@ goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
 setlocal enabledelayedexpansion
-if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
-    set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
+if defined GIT_VERSION_USER (
+    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
+
+    call "%cmder_root%\vendor\bin\cmder_sub_git_for_windows_path.cmd" "%CMDER_USER_GIT_PATH%" "%GIT_INSTALL_ROOT%\"
+  ) else (
+    REM set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
     if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
 
     :: Add git to the path
@@ -274,10 +279,6 @@ if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
         )
         call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\usr\bin" !path_position!
     )
-) else if defined GIT_VERSION_USER (
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
-
-    call "%cmder_root%\vendor\bin\cmder_sub_git_for_windows_path.cmd" "%CMDER_USER_GIT_PATH%" "%GIT_INSTALL_ROOT%\"
 )
 endlocal & set GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT% & set path=%path%
 
