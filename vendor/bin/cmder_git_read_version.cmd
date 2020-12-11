@@ -27,11 +27,11 @@
 
     :: set the executable path
     set "git_executable=%~2\git.exe"
-    if %debug_output% gtr 0 call :debug_output :read_version "Env Var - git_executable=%git_executable%"
+    %debug_print% :read_version "Env Var - git_executable=%git_executable%"
 
     :: check if the executable actually exists
     if not exist "%git_executable%" (
-        if %debug_output% gtr 0 call :debug_output :read_version "%git_executable% does not exist."
+        %debug_print% :read_version "%git_executable% does not exist."
         exit /b -255
     )
 
@@ -48,7 +48,7 @@
             exit /b
         )
     )
-    endlocal & set "GIT_VERSION_%~1=%GIT_VERSION%" & if %debug_output% gtr 0 call :debug_output :read_version "Env Var - GIT_VERSION_%~1=%GIT_VERSION%"
+    endlocal & set "GIT_VERSION_%~1=%GIT_VERSION%" & %debug_print% :read_version "Env Var - GIT_VERSION_%~1=%GIT_VERSION%"
 
     exit /b
 

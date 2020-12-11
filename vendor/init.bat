@@ -48,6 +48,7 @@ if not defined CMDER_ROOT (
 if "%CMDER_ROOT:~-1%" == "\" SET "CMDER_ROOT=%CMDER_ROOT:~0,-1%"
 set "CMDER_BIN=%CMDER_ROOT%\bin"
 set "CMDERR_BIN=%CMDER_ROOT%\vendor\bin"
+set error_print=call "%CMDER_ROOT%\vendor\bin\cmder_error_print.cmd"
 
 call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
 
@@ -67,7 +68,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
             set "max_depth=%~2"
             shift
         ) else (
-            call "%CMDERR_BIN%\cmder_show_error.cmd" "'/max_depth' requires a number between 1 and 5!"
+            %error_print% "'/max_depth' requires a number between 1 and 5!"
             exit /b
         )
     ) else if /i "%1" == "/c" (
@@ -88,7 +89,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
             set "GIT_INSTALL_ROOT=%~2"
             shift
         ) else (
-            call "%CMDERR_BIN%\cmder_show_error.cmd" "The Git install root folder '%~2', you specified does not exist!"
+            %error_print% "The Git install root folder '%~2', you specified does not exist!"
             exit /b
         )
     ) else if /i "%1"=="/nix_tools" (
@@ -110,7 +111,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
             set "HOME=%~2"
             shift
         ) else (
-            call "%CMDERR_BIN%\cmder_show_error.cmd" The home folder "%2", you specified does not exist!
+            %error_print% The home folder "%2", you specified does not exist!
             exit /b
         )
     ) else if /i "%1" == "/svn_ssh" (
@@ -123,14 +124,16 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
 goto var_loop
 
 :start
+set debug_print=if %debug_output% gtr 0 call "%CMDER_ROOT%vendor\bin\cmder_debug_print.cmd"
+set verbose_print=if %verbose_output% gtr 0 call "%CMDER_ROOT%\vendor\bin\cmder_verbose_print.cmd"
 
 :: Sets CMDER_SHELL, CMDER_CLINK, CMDER_ALIASES
 call "%CMDERR_BIN%\cmder_shell.cmd"
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - debug_output=%debug_output%"
+%debug_print% init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
+%debug_print% init.bat "Env Var - debug_output=%debug_output%"
 
 if defined CMDER_USER_CONFIG (
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '%CMDER_USER_CONFIG%'!"
+    %debug_print% init.bat "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '%CMDER_USER_CONFIG%'!"
 
     if not exist "%CMDER_USER_CONFIG%\opt" md "%CMDER_USER_CONFIG%\opt"
 )
@@ -145,7 +148,7 @@ if "%PROCESSOR_ARCHITECTURE%"=="x86" (
 )
 
 if "%CMDER_CLINK%" == "1" (
-  call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Injecting Clink!"
+  %verbose_print% "Injecting Clink!"
 
   :: Run clink
   if defined CMDER_USER_CONFIG (
@@ -164,15 +167,15 @@ if "%CMDER_CLINK%" == "1" (
     "%CMDER_ROOT%\vendor\clink\clink_%clink_architecture%.exe" inject --quiet --profile "%CMDER_ROOT%\config" --scripts "%CMDER_ROOT%\vendor"
   )
 ) else (
-  call "%CMDERR_BIN%\cmder_verbose_output.cmd" "WARNING: Incompatible 'ComSpec/Shell' Detetected Skipping Clink Injection!"
+  %verbose_print% "WARNING: Incompatible 'ComSpec/Shell' Detetected Skipping Clink Injection!"
 )
 
 if "%CMDER_CONFIGURED%" GTR "1" (
-  call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Cmder is already configured, skipping Cmder Init!"
+  %verbose_print% "Cmder is already configured, skipping Cmder Init!"
 
   goto USER_ALIASES
 ) else if "%CMDER_CONFIGURED%" == "1" (
-  call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Cmder is already configured, skipping to Cmder User Init!"
+  %verbose_print% "Cmder is already configured, skipping to Cmder User Init!"
 
   goto USER_CONFIG_START
 )
@@ -192,12 +195,12 @@ if defined GIT_INSTALL_ROOT (
     if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" goto :SPECIFIED_GIT
 ) else if "%fast_init%" == "1" (
     if exist "%CMDER_ROOT%\vendor\git-for-windows\cmd\git.exe" (
-      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Skipping Git Auto-Detect!"
+      %debug_print% "Skipping Git Auto-Detect!"
       goto :VENDORED_GIT
     )
 )
 
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Looking for Git install root..."
+%debug_print% init.bat "Looking for Git install root..."
 
 :: get the version information for vendored git binary
 call "%CMDERR_BIN%\cmder_git_read_version.cmd" VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd"
@@ -215,7 +218,7 @@ for /F "delims=" %%F in ('where git.exe 2^>nul') do (
         :: compare the user git version against the vendored version
         :: if the user provided git executable is not found
         IF ERRORLEVEL -255 IF NOT ERRORLEVEL -254 (
-            call "%CMDERR_BIN%\cmder_verbose_output.cmd" "No git at "%git_executable%" found."
+            %verbose_print% "No git at "%git_executable%" found."
             set test_dir=
         )
     )
@@ -235,39 +238,39 @@ if not defined GIT_INSTALL_ROOT if defined GIT_VERSION_VENDORED (
     :VENDORED_GIT
     set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
     set GIT_INSTALL_TYPE=VENDOR
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Newer user Git NOT found using vendored Git '%GIT_VERSION_VENDORED%'..."
+    %debug_print% "Newer user Git NOT found using vendored Git '%GIT_VERSION_VENDORED%'..."
     goto :CONFIGURE_GIT
 ) else (
     goto :NO_GIT
 )
 
 :SPECIFIED_GIT
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using /GIT_INSTALL_ROOT..."
+%debug_print% "Using /GIT_INSTALL_ROOT..."
 goto :CONFIGURE_GIT
 
 :FOUND_GIT
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
+%debug_print% "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
 goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
 setlocal enabledelayedexpansion
 if defined GIT_VERSION_USER (
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
+    %debug_print% "Using Git from '!GIT_INSTALL_ROOT!..."
 
     call "%cmder_root%\vendor\bin\cmder_sub_git_for_windows_path.cmd" "%CMDER_USER_GIT_PATH%" "%GIT_INSTALL_ROOT%\"
   ) else (
     REM set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" "Using Git from '!GIT_INSTALL_ROOT!..."
+    %debug_print% "Using Git from '!GIT_INSTALL_ROOT!..."
 
     :: Add git to the path
     call "%CMDERR_BIN%\cmder_enhance_path.cmd" "!GIT_INSTALL_ROOT!\cmd" ""
 
     :: Add the unix commands at the end to not shadow windows commands like more
     if %nix_tools% equ 1 (
-        call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Preferring Windows commands"
+        %verbose_print% "Preferring Windows commands"
         set "path_position=append"
     ) else (
-        call "%CMDERR_BIN%\cmder_verbose_output.cmd" "Preferring *nix commands"
+        %verbose_print% "Preferring *nix commands"
         set "path_position="
     )
 
@@ -292,7 +295,7 @@ if not defined git_locale if exist "%GIT_INSTALL_ROOT%\usr\bin\env.exe" set git_
 if not defined git_locale for /F "tokens=* delims=" %%F in ('where env.exe 2^>nul') do ( if not defined git_locale  set git_locale="%%F" /usr/bin/locale )
 
 if defined git_locale (
-  rem if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - git_locale=%git_locale%"
+  rem %debug_print% init.bat "Env Var - git_locale=%git_locale%"
   if not defined LANG (
       for /F "delims=" %%F in ('%git_locale% -uU 2') do (
           set "LANG=%%F"
@@ -300,8 +303,8 @@ if defined git_locale (
   )
 )
 
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"
+%debug_print% init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
+%debug_print% init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"
 goto :PATH_ENHANCE
 
 :NO_GIT
@@ -385,12 +388,12 @@ if exist "%GIT_INSTALL_ROOT%\post-install.bat" (
 
 :: Set home path
 if not defined HOME set "HOME=%USERPROFILE%"
-if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Env Var - HOME=%HOME%"
+%debug_print% init.bat "Env Var - HOME=%HOME%"
 
 set "initialConfig=%CMDER_ROOT%\config\user_profile.cmd"
 if exist "%CMDER_ROOT%\config\user_profile.cmd" (
     REM Create this file and place your own command in there
-    if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Calling - %CMDER_ROOT%\config\user_profile.cmd"
+    %debug_print% init.bat "Calling - %CMDER_ROOT%\config\user_profile.cmd"
     call "%CMDER_ROOT%\config\user_profile.cmd"
 )
 
@@ -398,7 +401,7 @@ if defined CMDER_USER_CONFIG (
   set "initialConfig=%CMDER_USER_CONFIG%\user_profile.cmd"
   if exist "%CMDER_USER_CONFIG%\user_profile.cmd" (
       REM Create this file and place your own command in there
-      if %debug_output% gtr 0 call "%CMDERR_BIN%\cmder_debug_output.cmd" init.bat "Calling - %CMDER_USER_CONFIG%\user_profile.cmd"
+      %debug_print% init.bat "Calling - %CMDER_USER_CONFIG%\user_profile.cmd"
       call "%CMDER_USER_CONFIG%\user_profile.cmd"
   )
 )

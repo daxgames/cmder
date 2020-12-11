@@ -31,7 +31,7 @@
     if "%~1" neq "" (
         set "add_path=%~1"
     ) else (
-        call "%CMDERR_BIN%\cmder_show_error.cmd" "You must specify a directory to add to the path!"
+        %error_print% "You must specify a directory to add to the path!"
         exit 1
     )
 
@@ -63,14 +63,14 @@
       exit /b
     )
 
-    if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var - add_path=%add_to_path%"
-    if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var - position=%position%"
-    if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var - depth=%depth%"
-    if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var - max_depth=%max_depth%"
+    %debug_print%  :enhance_path_recursive "Env Var - add_path=%add_to_path%"
+    %debug_print%  :enhance_path_recursive "Env Var - position=%position%"
+    %debug_print%  :enhance_path_recursive "Env Var - depth=%depth%"
+    %debug_print%  :enhance_path_recursive "Env Var - max_depth=%max_depth%"
 
     if %max_depth% gtr %depth% (
         if "%add_to_path%" neq "" (
-            if %debug_output% gtr 0 call :debug_output :enhance_path_recursive "Adding parent directory - '%add_to_path%'"
+            %debug_print% :enhance_path_recursive "Adding parent directory - '%add_to_path%'"
             call cmder_enhance_path "%add_to_path%" %position%
         )
         call :set_depth
@@ -91,10 +91,10 @@
     )
 
     for /d %%i in ("%add_path%\*") do (
-        if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var BEFORE - depth=%depth%"
-        if %debug_output% gtr 0 call :debug_output :enhance_path_recursive "Found Subdirectory - '%%~fi'"
+        %debug_print%  :enhance_path_recursive "Env Var BEFORE - depth=%depth%"
+        %debug_print% :enhance_path_recursive "Found Subdirectory - '%%~fi'"
         call cmder_enhance_path_recursive "%%~fi" %depth% %max_depth% %position%
-        if %debug_output% gtr 0 call :debug_output  :enhance_path_recursive "Env Var AFTER- depth=%depth%"
+        %debug_print%  :enhance_path_recursive "Env Var AFTER- depth=%depth%"
     )
     exit /b
 
