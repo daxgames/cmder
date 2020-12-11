@@ -1,16 +1,16 @@
 @echo off
 
-call "%~dp0lib_base.cmd"
-set lib_console=call "%~dp0lib_console.cmd"
-
-if "%fast_init%" == "1" exit /b
-
 if "%~1" == "/h" (
     %lib_base% help "%~0"
+    exit /b
 ) else if "%1" neq "" (
+    if "%fast_init%" == "1" exit /b
     call :%*
+    exit /b
 )
 
+call "%~dp0lib_base.cmd"
+set lib_console=call "%~dp0lib_console.cmd"
 exit /b
 
 :debug_output

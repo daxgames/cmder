@@ -1,13 +1,17 @@
 @echo off
 
-set lib_base=call "%~dp0lib_base.cmd"
+if not defined lib_base_calls set lib_base_calls=0
+set /a "lib_base_calls=%lib_base_calls%+1"
 
 if "%~1" == "/h" (
     %lib_base% help "%~0"
+    exit /b
 ) else if "%1" neq "" (
     call :%*
+    exit /b
 )
 
+set lib_base=call "%~dp0lib_base.cmd"
 exit /b
 
 :help
