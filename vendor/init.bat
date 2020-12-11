@@ -124,7 +124,7 @@ call "%cmder_root%\vendor\bin\cexec.cmd" /setpath
 goto var_loop
 
 :start
-set debug_print=if %debug_output% gtr 0 call "%CMDER_ROOT%vendor\bin\cmder_debug_print.cmd"
+set debug_print=if %debug_output% gtr 0 call "%CMDER_ROOT%\vendor\bin\cmder_debug_print.cmd"
 set verbose_print=if %verbose_output% gtr 0 call "%CMDER_ROOT%\vendor\bin\cmder_verbose_print.cmd"
 
 :: Sets CMDER_SHELL, CMDER_CLINK, CMDER_ALIASES
