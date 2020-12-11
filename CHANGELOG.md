@@ -1,5 +1,27 @@
 # Change Log
 
+## [1.3.16](https://github.com/cmderdev/cmder/tree/v1.3.16) (2020-07-29)
+
+### Fixes
+
+* Merge pull request #2357 from FloSchwalm/fix-git-version-comparison  [Dax T Games]                                                                   
+* Merge pull request #2339 from daxgames/fix_global_vars_vscode_err  [Dax T Games]                                                                     
+
+### Changes
+
+* Merge pull request #2358 from FloSchwalm/update-to-git-2.28  [Dax T Games]               
+                                                                                                                                                                          
+## [1.3.15](https://github.com/cmderdev/cmder/tree/v1.3.15) (2020-06-26)
+
+* Fixes #2247, fixes #2254 [#2265](https://github.com/cmderdev/cmder/pull/2265)
+* Clink path get broken if clink-completions content is created in a different order #2278Clink path get broken if clink-completions content is created in a different order [#2278](https://github.com/cmderdev/cmder/pull/2278)
+* Move Git functions to `lib/git.bat` [#2293](https://github.com/cmderdev/cmder/pull/2293)
+* Fix Cmder issue #2290 [#2294](https://github.com/cmderdev/cmder/pull/2294)
+* Update git for windows to 2.26.2 [#2308](https://github.com/cmderdev/cmder/pull/2308)
+* Update README.md #2323Update README.md [#2323](https://github.com/cmderdev/cmder/pull/2323)
+* Added support for setting custom icons for Cmder window [#2335](https://github.com/cmderdev/cmder/pull/2335)
+* Fix and enhance enhance_path_recursive [#2311](https://github.com/cmderdev/cmder/pull/2311)
+
 ## [1.3.14](https://github.com/cmderdev/cmder/tree/v1.3.14) (2020-01-08)
 
 ### Fixes
