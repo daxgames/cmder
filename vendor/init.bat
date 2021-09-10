@@ -70,7 +70,7 @@ call "%cmder_root%\vendor\lib\lib_profile"
             set "max_depth=%~2"
             shift
         ) else (
-            %lib_console% show_error "'/max_depth' requires a number between 1 and 5!"
+            %print_error% "'/max_depth' requires a number between 1 and 5!"
             exit /b
         )
     ) else if /i "%1" == "/c" (
@@ -91,7 +91,7 @@ call "%cmder_root%\vendor\lib\lib_profile"
             set "GIT_INSTALL_ROOT=%~2"
             shift
         ) else (
-            %lib_console% show_error "The Git install root folder "%~2", you specified does not exist!"
+            %print_error% "The Git install root folder "%~2", you specified does not exist!"
             exit /b
         )
     ) else if /i "%1"=="/nix_tools" (
@@ -113,7 +113,7 @@ call "%cmder_root%\vendor\lib\lib_profile"
             set "HOME=%~2"
             shift
         ) else (
-            %lib_console% show_error The home folder "%2", you specified does not exist!
+            %print_error% The home folder "%2", you specified does not exist!
             exit /b
         )
     ) else if /i "%1" == "/svn_ssh" (
@@ -128,11 +128,11 @@ goto var_loop
 :start
 :: Sets CMDER_SHELL, CMDER_CLINK, CMDER_ALIASES
 %lib_base% cmder_shell
-%lib_console% debug_output init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
-%lib_console% debug_output init.bat "Env Var - debug_output=%debug_output%"
+%print_debug% init.bat "Env Var - CMDER_ROOT=%CMDER_ROOT%"
+%print_debug% init.bat "Env Var - debug_output=%debug_output%"
 
 if defined CMDER_USER_CONFIG (
-    %lib_console% debug_output init.bat "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '%CMDER_USER_CONFIG%'!"
+    %print_debug% init.bat "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '%CMDER_USER_CONFIG%'!"
 
     if not exist "%CMDER_USER_CONFIG%\opt" md "%CMDER_USER_CONFIG%\opt"
 )
@@ -147,34 +147,65 @@ if "%PROCESSOR_ARCHITECTURE%"=="x86" (
 )
 
 if "%CMDER_CLINK%" == "1" (
-  %lib_console% verbose_output "Injecting Clink!"
+  %print_verbose% "Injecting Clink!"
 
   :: Run clink
   if defined CMDER_USER_CONFIG (
-    if not exist "%CMDER_USER_CONFIG%\settings" (
-      echo Generating clink initial settings in "%CMDER_USER_CONFIG%\settings"
-      copy "%CMDER_ROOT%\vendor\clink_settings.default" "%CMDER_USER_CONFIG%\settings"
-      echo Additional *.lua files in "%CMDER_USER_CONFIG%" are loaded on startup.\
+    if not exist "%CMDER_USER_CONFIG%\settings" if not exist "%CMDER_USER_CONFIG%\clink_settings" (
+      echo Generating clink initial settings in "%CMDER_USER_CONFIG%\clink_settings"
+      copy "%CMDER_ROOT%\vendor\clink_settings.default" "%CMDER_USER_CONFIG%\clink_settings"
+      echo Additional *.lua files in "%CMDER_USER_CONFIG%" are loaded on startup.
+    )
+
+    if not exist "%CMDER_USER_CONFIG%\cmder_prompt_config.lua" (
+      echo Creating Cmder prompt config file: "%CMDER_USER_CONFIG%\cmder_prompt_config.lua"
+      copy "%CMDER_ROOT%\vendor\cmder_prompt_config.lua.default" "%CMDER_USER_CONFIG%\cmder_prompt_config.lua"
+    )
+
+    REM Cleanup lagacy Clink Settings file
+    if exist "%CMDER_USER_CONFIG%\settings" if exist "%CMDER_USER_CONFIG%\clink_settings" (
+      del "%CMDER_USER_CONFIG%\settings"
+    )
+
+    REM Cleanup legacy CLink history file
+    if exist "%CMDER_USER_CONFIG%\.history" if exist "%CMDER_USER_CONFIG%\clink_history" (
+      del "%CMDER_USER_CONFIG%\.history"
     )
     "%CMDER_ROOT%\vendor\clink\clink_%clink_architecture%.exe" inject --quiet --profile "%CMDER_USER_CONFIG%" --scripts "%CMDER_ROOT%\vendor"
   ) else (
-    if not exist "%CMDER_ROOT%\config\settings" (
-      echo Generating clink initial settings in "%CMDER_ROOT%\config\settings"
-      copy "%CMDER_ROOT%\vendor\clink_settings.default" "%CMDER_ROOT%\config\settings"
+    if not exist "%CMDER_ROOT%\config\settings" if not exist "%CMDER_ROOT%\config\clink_settings" (
+      echo Generating clink initial settings in "%CMDER_ROOT%\config\clink_settings"
+      copy "%CMDER_ROOT%\vendor\clink_settings.default" "%CMDER_ROOT%\config\clink_settings"
       echo Additional *.lua files in "%CMDER_ROOT%\config" are loaded on startup.
     )
+    
+    if not exist "%CMDER_ROOT%\config\cmder_prompt_config.lua" (
+      echo Creating Cmder prompt config file: "%CMDER_ROOT%\config\cmder_prompt_config.lua"
+      copy "%CMDER_ROOT%\vendor\cmder_prompt_config.lua.default" "%CMDER_ROOT%\config\cmder_prompt_config.lua"
+    )
+
+    REM Cleanup lagacy Clink Settings file
+    if exist "%CMDER_ROOT%\config\settings" if exist "%CMDER_ROOT%\config\clink_settings" (
+      del "%CMDER_ROOT%\config\settings"
+    )
+
+    REM Cleanup legacy Clink history file
+    if exist "%CMDER_ROOT%\config\.history" if exist "%CMDER_ROOT%\config\clink_history" (
+      del "%CMDER_ROOT%\config\.history"
+    )
+
     "%CMDER_ROOT%\vendor\clink\clink_%clink_architecture%.exe" inject --quiet --profile "%CMDER_ROOT%\config" --scripts "%CMDER_ROOT%\vendor"
   )
 ) else (
-  %lib_console% verbose_output "WARNING: Incompatible 'ComSpec/Shell' Detetected Skipping Clink Injection!"
+  %print_verbose% "WARNING: Incompatible 'ComSpec/Shell' Detetected Skipping Clink Injection!"
 )
 
 if "%CMDER_CONFIGURED%" GTR "1" (
-  %lib_console% verbose_output "Cmder is already configured, skipping Cmder Init!"
+  %print_verbose% "Cmder is already configured, skipping Cmder Init!"
 
   goto USER_ALIASES
 ) else if "%CMDER_CONFIGURED%" == "1" (
-  %lib_console% verbose_output "Cmder is already configured, skipping to Cmder User Init!"
+  %print_verbose% "Cmder is already configured, skipping to Cmder User Init!"
 
   goto USER_CONFIG_START
 )
@@ -194,15 +225,15 @@ if defined GIT_INSTALL_ROOT (
     if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" goto :SPECIFIED_GIT
 ) else if "%fast_init%" == "1" (
     if exist "%CMDER_ROOT%\vendor\git-for-windows\cmd\git.exe" (
-      %lib_console% debug_output "Skipping Git Auto-Detect!"
+      %print_debug% "Skipping Git Auto-Detect!"
       goto :VENDORED_GIT
     )
 )
 
-%lib_console% debug_output init.bat "Looking for Git install root..."
+%print_debug% init.bat "Looking for Git install root..."
 
 :: get the version information for vendored git binary
-%lib_git% read_version VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd"
+%lib_git% read_version VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd" 2>nul
 %lib_git% validate_version VENDORED %GIT_VERSION_VENDORED%
 
 :: check if git is in path...
@@ -237,18 +268,18 @@ REM if exist "%CMDER_ROOT%\vendor\git-for-windows" (
 if not defined GIT_INSTALL_ROOT if defined GIT_VERSION_VENDORED (
     set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
     set GIT_INSTALL_TYPE=VENDOR
-    %lib_console% debug_output "Newer user Git NOT found using vendored Git '%GIT_VERSION_VENDORED%'..."
+    %print_debug% "Using vendored Git '%GIT_VERSION_VENDORED%'..."
     goto :CONFIGURE_GIT
 ) else (
     goto :NO_GIT
 )
 
 :SPECIFIED_GIT
-%lib_console% debug_output "Using /GIT_INSTALL_ROOT..."
+%print_debug% "Using /GIT_INSTALL_ROOT..."
 goto :CONFIGURE_GIT
 
 :FOUND_GIT
-%lib_console% debug_output "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
+%print_debug% "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
 goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
@@ -256,12 +287,13 @@ setlocal enabledelayedexpansion
 if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
     set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
     if defined GIT_VERSION_USER (
-        %lib_console% debug_output "Using Git from '!GIT_INSTALL_ROOT!..."
+        %print_debug% "Using Git from '!GIT_INSTALL_ROOT!..."
 
         call "%cmder_root%\vendor\bin\cmder_sub_git_for_windows_path.cmd" "%CMDER_USER_GIT_PATH%" "%GIT_INSTALL_ROOT%\"
     ) else (
         %lib_console% debug_output "Using Git from '!GIT_INSTALL_ROOT!..."
 
+        %print_debug% "Using Git from '!GIT_INSTALL_ROOT!..."
         :: Add git to the path
         %lib_path% enhance_path "!GIT_INSTALL_ROOT!\cmd" ""
 
@@ -282,6 +314,7 @@ if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
             )
             %lib_path% enhance_path "!GIT_INSTALL_ROOT!\usr\bin" !path_position!
         )
+
     )
 )
 endlocal & set GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT% & set path=%path%
@@ -296,7 +329,7 @@ if not defined git_locale if exist "%GIT_INSTALL_ROOT%\usr\bin\env.exe" set git_
 if not defined git_locale for /F "tokens=* delims=" %%F in ('where env.exe 2^>nul') do ( if not defined git_locale  set git_locale="%%F" /usr/bin/locale )
 
 if defined git_locale (
-  rem %lib_console% debug_output init.bat "Env Var - git_locale=%git_locale%"
+  REM %print_debug% init.bat "Env Var - git_locale=!git_locale!"
   if not defined LANG (
       for /F "delims=" %%F in ('%git_locale% -uU 2') do (
           set "LANG=%%F"
@@ -304,8 +337,8 @@ if defined git_locale (
   )
 )
 
-%lib_console% debug_output init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
-%lib_console% debug_output init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"
+%print_debug% init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
+%print_debug% init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"
 goto :PATH_ENHANCE
 
 :NO_GIT
@@ -372,6 +405,13 @@ if "%CMDER_ALIASES%" == "1" (
 )
 
 :: Add aliases to the environment
+type "%user_aliases%" | findstr /b /l /i "history=cat " >nul
+if "%ERRORLEVEL%" == "0" (
+  echo Migrating alias 'history' to new Clink 1.x.x...
+  call "%CMDER_ROOT%\vendor\bin\alias.cmd" /d history
+  echo Restart the session to activate changes!
+)
+
 call "%user_aliases%"
 
 if "%CMDER_CONFIGURED%" gtr "1" goto CMDER_CONFIGURED
@@ -388,12 +428,12 @@ if exist "%GIT_INSTALL_ROOT%\post-install.bat" (
 
 :: Set home path
 if not defined HOME set "HOME=%USERPROFILE%"
-%lib_console% debug_output init.bat "Env Var - HOME=%HOME%"
+%print_debug% init.bat "Env Var - HOME=%HOME%"
 
 set "initialConfig=%CMDER_ROOT%\config\user_profile.cmd"
 if exist "%CMDER_ROOT%\config\user_profile.cmd" (
     REM Create this file and place your own command in there
-    %lib_console% debug_output init.bat "Calling - %CMDER_ROOT%\config\user_profile.cmd"
+    %print_debug% init.bat "Calling - %CMDER_ROOT%\config\user_profile.cmd"
     call "%CMDER_ROOT%\config\user_profile.cmd"
 )
 
@@ -401,7 +441,7 @@ if defined CMDER_USER_CONFIG (
   set "initialConfig=%CMDER_USER_CONFIG%\user_profile.cmd"
   if exist "%CMDER_USER_CONFIG%\user_profile.cmd" (
       REM Create this file and place your own command in there
-      %lib_console% debug_output init.bat "Calling - %CMDER_USER_CONFIG%\user_profile.cmd"
+      %print_debug% init.bat "Calling - %CMDER_USER_CONFIG%\user_profile.cmd"
       call "%CMDER_USER_CONFIG%\user_profile.cmd"
   )
 )
