@@ -74,24 +74,24 @@ exit /b
     set "find_query=%add_to_path%"
     set "find_query=%find_query:\=\\%"
     set "find_query=%find_query: =\ %"
-    set OLD_PATH=%PATH%
+    set "OLD_PATH=%PATH%"
 
     setlocal enabledelayedexpansion
-    if "%found%" == "0" (
-      echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:";%find_query%;"
+    if "!found!" == "0" (
+      echo "!path!"|!WINDIR!\System32\findstr >nul /I /R /C:";!find_query!;"
       call :set_found
     )
     %print_debug%  :enhance_path "Env Var INSIDE PATH !find_query! - found=!found!"
 
-    if /i "%position%" == "append" (
+    if /i "!position!" == "append" (
       if "!found!" == "0" (
-        echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:";%find_query%\"$"
+        echo "!path!"|!WINDIR!\System32\findstr >nul /I /R /C:";!find_query!\"$"
         call :set_found
       )
       %print_debug%  :enhance_path "Env Var END PATH !find_query! - found=!found!"
     ) else (
       if "!found!" == "0" (
-        echo "%path%"|%WINDIR%\System32\findstr >nul /I /R /C:"^\"%find_query%;"
+        echo "!path!"|!WINDIR!\System32\findstr >nul /I /R /C:"^\"!find_query!;"
         call :set_found
       )
       %print_debug%  :enhance_path "Env Var BEGIN PATH !find_query! - found=!found!"
@@ -121,8 +121,8 @@ exit /b
     exit /b
 
     :toolong
-      echo %OLD_PATH%>tempfileA
-      echo %PATH%>tempfileB
+      echo "%OLD_PATH%">tempfileA
+      echo "%PATH%">tempfileB
       fc /b tempfileA tempfileB 2>nul 1>nul
       if errorlevel 1 ( del tempfileA & del tempfileB & goto :changed )
       del tempfileA & del tempfileB
@@ -162,7 +162,7 @@ exit /b
 :::.
 :::options:
 :::.
-:::  [max_depth] <in> Max recuse depth.  Default: 1
+:::  [max_depth] <in> Max recursion depth.  Default: 1
 :::.
 :::  append      <in> Append instead to path env variable rather than pre-pend.
 :::.

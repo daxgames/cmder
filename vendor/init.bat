@@ -23,10 +23,7 @@ if not defined fast_init set fast_init=0
 :: Use /max_depth 1-5 to set max recurse depth for calls to `enhance_path_recursive`
 if not defined max_depth set max_depth=1
 
-:: Control *nix tools path.
-:: 0 turns off *nix tools.
-:: 1 Add *nix tools tho end of path.
-:: 2 Adds *nix tools to the front of the path.
+:: Add *nix tools to end of path. 0 turns off *nix tools, 2 adds *nix tools to the front of thr path.
 if not defined nix_tools set nix_tools=1
 
 set "CMDER_USER_FLAGS= "
@@ -134,7 +131,7 @@ goto var_loop
 if defined CMDER_USER_CONFIG (
     %print_debug% init.bat "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '%CMDER_USER_CONFIG%'!"
 
-    if not exist "%CMDER_USER_CONFIG%\opt" md "%CMDER_USER_CONFIG%\opt"
+    if not exist "%CMDER_USER_CONFIG%\..\opt" md "%CMDER_USER_CONFIG%\..\opt"
 )
 
 :: Pick right version of clink
@@ -239,35 +236,19 @@ if defined GIT_INSTALL_ROOT (
 :: check if git is in path...
 for /F "delims=" %%F in ('where git.exe 2^>nul') do (
     :: get the absolute path to the user provided git binary
-    %lib_git% set_user_git_path "%%~dpF"
     %lib_git% is_git_shim "%%~dpF"
     %lib_git% get_user_git_version
-    if ERRORLEVEL 0 (
-        %lib_git% compare_git_versions
-    ) else (
-        :: compare the user git version against the vendored version
-        :: if the user provided git executable is not found
-        IF ERRORLEVEL -255 IF NOT ERRORLEVEL -254 (
-            %lib_console% verbose_output "No git at "%git_executable%" found."
-            set test_dir=
-        )
-    )
+    %lib_git% compare_git_versions
 
     if defined GIT_INSTALL_ROOT (
-        set GIT_INSTALL_TYPE=USER
         goto :FOUND_GIT
     )
 )
-set git_executable=
-
-REM echo Git User Path XXX: %CMDER_USER_GIT_PATH%
 
 :: our last hope: our own git...
 :VENDORED_GIT
-REM if exist "%CMDER_ROOT%\vendor\git-for-windows" (
-if not defined GIT_INSTALL_ROOT if defined GIT_VERSION_VENDORED (
+if exist "%CMDER_ROOT%\vendor\git-for-windows" (
     set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
-    set GIT_INSTALL_TYPE=VENDOR
     %print_debug% "Using vendored Git '%GIT_VERSION_VENDORED%'..."
     goto :CONFIGURE_GIT
 ) else (
@@ -283,41 +264,29 @@ goto :CONFIGURE_GIT
 goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
-setlocal enabledelayedexpansion
-if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
-    set "GIT_INSTALL_ROOT=%CMDER_ROOT%\vendor\git-for-windows"
-    if defined GIT_VERSION_USER (
-        %print_debug% "Using Git from '!GIT_INSTALL_ROOT!..."
+%print_debug% "Using Git from '%GIT_INSTALL_ROOT%..."
+:: Add git to the path
+if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" %lib_path% enhance_path "%GIT_INSTALL_ROOT%\cmd" ""
 
-        call "%cmder_root%\vendor\bin\cmder_sub_git_for_windows_path.cmd" "%CMDER_USER_GIT_PATH%" "%GIT_INSTALL_ROOT%\"
-    ) else (
-        %lib_console% debug_output "Using Git from '!GIT_INSTALL_ROOT!..."
+:: Add the unix commands at the end to not shadow windows commands like more
+if %nix_tools% equ 1 (
+    %print_verbose% "Preferring Windows commands"
+    set "path_position=append"
+) else (
+    %print_verbose% "Preferring *nix commands"
+    set "path_position="
+)
 
-        %print_debug% "Using Git from '!GIT_INSTALL_ROOT!..."
-        :: Add git to the path
-        %lib_path% enhance_path "!GIT_INSTALL_ROOT!\cmd" ""
-
-        :: Add the unix commands at the end to not shadow windows commands like more
-        if %nix_tools% equ 1 (
-            %lib_console% verbose_output "Preferring Windows commands"
-            set "path_position=append"
-        ) else (
-            %lib_console% verbose_output "Preferring *nix commands"
-            set "path_position="
-        )
-
-        if %nix_tools% geq 1 (
-            if exist "!GIT_INSTALL_ROOT!\mingw32" (
-                %lib_path% enhance_path "!GIT_INSTALL_ROOT!\mingw32\bin" !path_position!
-            ) else if exist "!GIT_INSTALL_ROOT!\mingw64" (
-                %lib_path% enhance_path "!GIT_INSTALL_ROOT!\mingw64\bin" !path_position!
-            )
-            %lib_path% enhance_path "!GIT_INSTALL_ROOT!\usr\bin" !path_position!
-        )
-
+if %nix_tools% geq 1 (
+    if exist "%GIT_INSTALL_ROOT%\mingw32" (
+        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw32\bin" %path_position%
+    ) else if exist "%GIT_INSTALL_ROOT%\mingw64" (
+        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw64\bin" %path_position%
+    )
+    if exist "%GIT_INSTALL_ROOT%\usr\bin" (
+        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\usr\bin" %path_position%
     )
 )
-endlocal & set GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT% & set path=%path%
 
 :: define SVN_SSH so we can use git svn with ssh svn repositories
 if not defined SVN_SSH set "SVN_SSH=%GIT_INSTALL_ROOT:\=\\%\\bin\\ssh.exe"
@@ -328,14 +297,17 @@ if not defined git_locale for /F "tokens=* delims=" %%F in ('where locale.exe 2^
 if not defined git_locale if exist "%GIT_INSTALL_ROOT%\usr\bin\env.exe" set git_locale="%GIT_INSTALL_ROOT%\usr\bin\env.exe" /usr/bin/locale
 if not defined git_locale for /F "tokens=* delims=" %%F in ('where env.exe 2^>nul') do ( if not defined git_locale  set git_locale="%%F" /usr/bin/locale )
 
+setlocal enabledelayedexpansion
 if defined git_locale (
+
   REM %print_debug% init.bat "Env Var - git_locale=!git_locale!"
   if not defined LANG (
-      for /F "delims=" %%F in ('%git_locale% -uU 2') do (
+      for /F "delims=" %%F in ('!git_locale! -uU 2') do (
           set "LANG=%%F"
       )
   )
 )
+endlocal && set LANG=%LANG%
 
 %print_debug% init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
 %print_debug% init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"

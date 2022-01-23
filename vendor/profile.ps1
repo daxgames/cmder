@@ -3,6 +3,7 @@
 
 # !!! THIS FILE IS OVERWRITTEN WHEN CMDER IS UPDATED
 # !!! Use "%CMDER_ROOT%\config\user_profile.ps1" to add your own startup commands
+$CMDER_INIT_START=$(Get-Date -UFormat %s)
 
 # Compatibility with PS major versions <= 2
 if(!$PSScriptRoot) {
@@ -13,7 +14,7 @@ if ($ENV:CMDER_USER_CONFIG) {
     # write-host "CMDER IS ALSO USING INDIVIDUAL USER CONFIG FROM '$ENV:CMDER_USER_CONFIG'!"
 }
 
-# We do this for Powershell as Admin Sessions because CMDER_ROOT is not beng set.
+# We do this for Powershell as Admin Sessions because CMDER_ROOT is not being set.
 if (! $ENV:CMDER_ROOT ) {
     if ( $ENV:ConEmuDir ) {
         $ENV:CMDER_ROOT = resolve-path( $ENV:ConEmuDir + "\..\.." )
@@ -44,8 +45,9 @@ $gitVersionVendor = (readVersion -gitPath "$ENV:CMDER_ROOT\vendor\git-for-window
 
 # Get user installed Git Version[s] and Compare with vendored if found.
 foreach ($git in (get-command -ErrorAction SilentlyContinue 'git')) {
+    # write-host "GIT Path: " + $git.Path
     $gitDir = Split-Path -Path $git.Path
-    $gitDir = isGitShim -gitPath $gitDir 
+    $gitDir = isGitShim -gitPath $gitDir
     $gitVersionUser = (readVersion -gitPath $gitDir)
     # write-host "GIT USER: ${gitVersionUser}"
 
@@ -53,8 +55,16 @@ foreach ($git in (get-command -ErrorAction SilentlyContinue 'git')) {
     # write-host "Using GIT Version: ${useGitVersion}"
 
     # Use user installed Git
-    $gitPathUser = ($gitDir.subString(0,$gitDir.Length - 4))
+    if ($gitPathUser -eq $null) {
+      if ($gitDir -match '\\mingw32\\bin' -or $gitDir -match '\\mingw64\\bin') {
+        $gitPathUser = ($gitDir.subString(0,$gitDir.Length - 12))
+      } else {
+        $gitPathUser = ($gitDir.subString(0,$gitDir.Length - 4))
+      }
+    }
+
     if ($useGitVersion -eq $gitVersionUser) {
+        # write-host "Using GIT Dir: ${gitDir}"
         $ENV:GIT_INSTALL_ROOT = $gitPathUser
         $ENV:GIT_INSTALL_TYPE = 'USER'
         break
@@ -203,3 +213,6 @@ if ( $(get-command prompt).Definition -match 'PS \$\(\$executionContext.SessionS
   # if (!$(get-command Prompt).Options -match 'ReadOnly') {Set-Item -Path function:\prompt  -Value $Prompt  -Options ReadOnly}
   Set-Item -Path function:\prompt  -Value $Prompt  -Options ReadOnly
 }
+
+$CMDER_INIT_END=$(Get-Date -UFormat %s)
+# write-host "Elapsed Time: $(get-Date) `($($CMDER_INIT_END - $CMDER_INIT_START) total`)"

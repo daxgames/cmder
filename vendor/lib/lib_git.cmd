@@ -14,7 +14,7 @@ exit /b
 
 :read_version
 :::===============================================================================
-:::read_version - Get the git.exe verion
+:::read_version - Get the git.exe version
 :::.
 :::include:
 :::.
@@ -54,7 +54,7 @@ exit /b
         if /i "%%A %%B" == "git version" (
             set "GIT_VERSION=%%C"
         ) else (
-            echo "'git --version' returned an inproper version string!"
+            echo "'git --version' returned an improper version string!"
             pause
             exit /b
         )
@@ -230,24 +230,31 @@ exit /b
 :::-------------------------------------------------------------------------------
 
 :compare_git_versions
-    :: compare the user git version against the vendored version
-    %lib_git% compare_versions USER VENDORED
-
-    if exist "%test_dir:~0,-4%\cmd\git.exe" (
-        set "gitFolder=%test_dir:~0,-4%"
-    ) else (
-        set "gitFolder=%test_dir%"
-
-    )
-
-    :: use the user provided git if its version is greater than, or equal to the vendored git
+    setlocal enabledelayedexpansion
     if ERRORLEVEL 0 (
-        set "GIT_INSTALL_ROOT=%gitFolder%"
+        :: compare the user git version against the vendored version
+        !lib_git! compare_versions USER VENDORED
+
+        :: use the user provided git if its version is greater than, or equal to the vendored git
+        if ERRORLEVEL 0 (
+            if exist "!test_dir:~0,-4!\cmd\git.exe" (
+                set "GIT_INSTALL_ROOT=!test_dir:~0,-4!"
+            ) else (
+                set "GIT_INSTALL_ROOT=!test_dir!"
+            )
+        ) else (
+            %print_verbose% "Found old !GIT_VERSION_USER! in !test_dir!, but not using..."
+        )
     ) else (
-        %lib_console% verbose_output "Found old %GIT_VERSION_USER% in %test_dir%, but not using..."
+        :: compare the user git version against the vendored version
+        :: if the user provided git executable is not found
+        IF ERRORLEVEL -255 IF NOT ERRORLEVEL -254 (
+            %print_verbose% "No git at "!git_executable!" found."
+            set test_dir=
+        )
     )
-    set gitFolder=
-    set test_dir=
+    endlocal && set "GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%" && set test_dir=
+
     exit /b
 
 :::===============================================================================
@@ -268,17 +275,3 @@ exit /b
     %lib_git% validate_version USER %GIT_VERSION_USER%
     exit  /b
 
-:set_user_git_path
-  setlocal enabledelayedexpansion
-  set x=%~1
-  if not defined CMDER_USER_GIT_PATH set "CMDER_USER_GIT_PATH=%x:~0,-4%" && goto set_user_path_end
-  if defined CMDER_USER_GIT_PATH echo %x% | findstr "!CMDER_USER_GIT_PATH!" >nul
-  if defined CMDER_USER_GIT_PATH if ERRORLEVEL 1 (
-    set "CMDER_USER_GIT_PATH=%x:~0,-4%"
-  )
-
-  :set_user_path_end
-  (endlocal
-   set "CMDER_USER_GIT_PATH=%CMDER_USER_GIT_PATH%")
-
-  exit /b

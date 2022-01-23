@@ -168,7 +168,7 @@ local function set_prompt_filter()
 
     local version_control = prompt_includeVersionControl and "{git}{hg}{svn}" or ""
 
-    prompt = "{uah}{cwd}" .. version_control .. get_lamb_color() .. cr .. "{lamb} \x1b[0m"
+    prompt = "{uah}{cwd}" .. version_control .. get_lamb_color() .. cr .. "{env}{lamb} \x1b[0m"
     prompt = string.gsub(prompt, "{uah}", uah)
     prompt = string.gsub(prompt, "{cwd}", cwd)
     prompt = string.gsub(prompt, "{env}", env)
@@ -339,32 +339,27 @@ local function get_svn_branch(svn_dir)
 end
 
 ---
--- Get the status of working dir
--- @return {bool}
+-- Get the status and conflict status of working dir
+-- @return {bool <status>, bool <is_conflict>}
 ---
 local function get_git_status()
     local file = io_popenyield("git --no-optional-locks status --porcelain 2>nul")
+    local conflict_found = false
+    local is_status = true
     for line in file:lines() do
-        file:close()
-        return false
+        local code = line:sub(1, 2)
+        -- print (string.format("code: %s, line: %s", code, line))
+        if code == "DD" or code == "AU" or code == "UD" or code == "UA" or code == "DU" or code == "AA" or code == "UU" then
+          is_status = false
+          conflict_found = true
+          break
+        -- unversioned files are ignored, comment out 'code ~= "!!"' to unignore them
+        elseif code ~= "!!" and code ~= "??" then
+          is_status = false
+        end
     end
     file:close()
-
-    return true
-end
-
----
--- Gets the conflict status
--- @return {bool} indicating true for conflict, false for no conflicts
----
-function get_git_conflict()
-    local file = io_popenyield("git diff --name-only --diff-filter=U 2>nul")
-    for line in file:lines() do
-        file:close()
-        return true;
-    end
-    file:close()
-    return false
+    return { status = is_status, conflict = conflict_found }
 end
 
 
@@ -404,7 +399,7 @@ end
 ---
 local function get_git_info_table()
     local info = clink_promptcoroutine(function ()
-        return { status=get_git_status(), conflict=get_git_conflict() }
+        return get_git_status()
     end)
     if not info then
         info = cached_info.git_info or {}
