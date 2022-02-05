@@ -166,7 +166,7 @@ local function set_prompt_filter()
     if uah ~= '' then uah = get_uah_color() .. uah end
     if cwd ~= '' then cwd = get_cwd_color() .. cwd end
 
-    local version_control = prompt_includeVersionControl and "{git}{hg}{svn}" or ""
+    local version_control = prompt_includeVersionControl and " {git}{hg}{svn}" or ""
 
     prompt = "{uah}{cwd}" .. version_control .. get_lamb_color() .. cr .. "{env}{lamb} \x1b[0m"
     prompt = string.gsub(prompt, "{uah}", uah)
@@ -303,11 +303,18 @@ local function get_git_branch(git_dir)
 end
 
 ---
--- Find out current branch
--- @return {false|mercurial branch name}
+-- Find out current branch information
+-- @return {false|mercurial branch information}
 ---
 local function get_hg_branch()
-    local file = io.popen("hg branch 2>nul")
+    -- Return the branch information. The default is to get just the
+    -- branch name, but you could e.g. use the "hg-prompt" extension to
+    -- get more information, such as any applied mq patches. Here's an
+    -- example of that:
+    -- local cmd = "hg prompt \"{branch}{status}{|{patch}}{update}\""
+    local cmd = "hg branch 2>nul"
+    local file = io.popen(cmd)
+
     for line in file:lines() do
         local m = line:match("(.+)$")
         if m then
@@ -521,10 +528,7 @@ local function hg_prompt_filter()
             dirty = get_dirty_color(),
             nostatus = get_unknown_color()
         }
-
-        local pipe = io.popen("hg branch 2>&1")
-        local output = pipe:read('*all')
-        local rc = { pipe:close() }
+        local output = get_hg_branch()
 
         -- strip the trailing newline from the branch name
         local n = #output
