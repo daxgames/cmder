@@ -225,7 +225,7 @@ if not defined TERM set TERM=cygwin
 if defined GIT_INSTALL_ROOT (
     if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" goto :SPECIFIED_GIT
 ) else if "%fast_init%" == "1" (
-    echo %CMDER_INIT_SCRIPT_NAME%: Skipping Git Auto-Detect!
+    REM Cmder fast init is enabled, skipping Git Auto-Detect!
     goto :VENDORED_GIT
 )
 
@@ -276,7 +276,8 @@ if not defined GIT_INSTALL_ROOT if exist "%CMDER_ROOT%\vendor\git-for-windows\cm
 )
 
 :SPECIFIED_GIT
-%print_debug% "Using /GIT_INSTALL_ROOT..."
+%lib_git% get_user_git_version "%GIT_INSTALL_ROOT%\cmd"
+%print_debug% "Using Git '%GIT_VERSION_USER%' from '/GIT_INSTALL_ROOT' specified path '%GIT_INSTALL_ROOT%'..."
 goto :CONFIGURE_GIT
 
 :FOUND_GIT
@@ -285,49 +286,51 @@ goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
 setlocal enabledelayedexpansion
-if "%GIT_INSTALL_TYPE%" equ "VENDOR" (
-    %print_debug% "Using Git from '%GIT_INSTALL_ROOT%..."
-    if defined GIT_VERSION_USER (
-        call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%cmd" "%GIT_INSTALL_ROOT%\cmd"
-        call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%mingw32\bin" "%GIT_INSTALL_ROOT%\mingw32\bin"
-        call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%mingw64\bin" "%GIT_INSTALL_ROOT%\mingw64\bin"
-        call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%usr\bin" "%GIT_INSTALL_ROOT%\usr\bin"
+if "%GIT_INSTALL_TYPE%" equ "VENDOR" if defined CMDER_USER_GIT_PATH (
+    REM Use the current path variable as guidance in configuring git for windows paths using '%GIT_INSTALL_ROOT%' as the base.
+    call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%cmd" "%GIT_INSTALL_ROOT%\cmd"
+    call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%mingw32\bin" "%GIT_INSTALL_ROOT%\mingw32\bin"
+    call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%mingw64\bin" "%GIT_INSTALL_ROOT%\mingw64\bin"
+    call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "%CMDER_USER_GIT_PATH%usr\bin" "%GIT_INSTALL_ROOT%\usr\bin"
+) else (
+    for /F "delims=" %%F in ('where git.exe 2^>nul') do (
+      %lib_git% set_user_git_path "%%~dpF"
+    )
+
+    if defined CMDER_USER_GIT_PATH (
+      REM Use the current path variable as guidance in configuring git for windows paths using '%GIT_INSTALL_ROOT%' as the base.
+      call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!cmd" "%GIT_INSTALL_ROOT%\cmd"
+      call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!mingw32\bin" "%GIT_INSTALL_ROOT%\mingw32\bin"
+      call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!mingw64\bin" "%GIT_INSTALL_ROOT%\mingw64\bin"
+      call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!usr\bin" "%GIT_INSTALL_ROOT%\usr\bin"
     ) else (
-        for /F "delims=" %%F in ('where git.exe 2^>nul') do (
-          %lib_git% set_user_git_path "%%~dpF"
-        )
+      REM Use default Cmder behavior for configuring git for windows paths using '%GIT_INSTALL_ROOT%' as the base.
 
-        if defined CMDER_USER_GIT_PATH (
-          call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!cmd" "%GIT_INSTALL_ROOT%\cmd"
-          call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!mingw32\bin" "%GIT_INSTALL_ROOT%\mingw32\bin"
-          call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!mingw64\bin" "%GIT_INSTALL_ROOT%\mingw64\bin"
-          call "%cmder_root%\vendor\bin\cmder_sub_path.cmd" "!CMDER_USER_GIT_PATH!usr\bin" "%GIT_INSTALL_ROOT%\usr\bin"
-        ) else (
-          :: Add git to the path
-          %lib_path% enhance_path "%GIT_INSTALL_ROOT%\cmd" ""
+      :: Add git to the path
+      %lib_path% enhance_path "%GIT_INSTALL_ROOT%\cmd" ""
 
-          :: Add the unix commands at the end to not shadow windows commands like more
-          if %nix_tools% equ 1 (
-              %print_verbose% "Preferring Windows commands"
-              set "path_position=append"
-          ) else (
-              %print_verbose% "Preferring *nix commands"
-              set "path_position="
+      :: Add the unix commands at the end to not shadow windows commands like more
+      if %nix_tools% equ 1 (
+          %print_verbose% "Preferring Windows commands"
+          set "path_position=append"
+      ) else (
+          %print_verbose% "Preferring *nix commands"
+          set "path_position="
+      )
+
+      if %nix_tools% geq 1 (
+          if exist "%GIT_INSTALL_ROOT%\mingw32" (
+              %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw32\bin" !path_position!
+          ) else if exist "%GIT_INSTALL_ROOT%\mingw64" (
+              %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw64\bin" !path_position!
           )
-
-          if %nix_tools% geq 1 (
-              if exist "%GIT_INSTALL_ROOT%\mingw32" (
-                  %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw32\bin" !path_position!
-              ) else if exist "%GIT_INSTALL_ROOT%\mingw64" (
-                  %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw64\bin" !path_position!
-              )
-              if exist "%GIT_INSTALL_ROOT%\usr\bin" (
-                  %lib_path% enhance_path "%GIT_INSTALL_ROOT%\usr\bin" !path_position!
-	            )
+          if exist "%GIT_INSTALL_ROOT%\usr\bin" (
+              %lib_path% enhance_path "%GIT_INSTALL_ROOT%\usr\bin" !path_position!
           )
-        )
+      )
     )
 )
+
 endlocal & set path=%path%
 
 :: define SVN_SSH so we can use git svn with ssh svn repositories
@@ -433,6 +436,8 @@ if "%CMDER_CONFIGURED%" gtr "1" goto CMDER_CONFIGURED
 if exist "%GIT_INSTALL_ROOT%\post-install.bat" (
     echo Running Git for Windows one time Post Install....
     pushd "%GIT_INSTALL_ROOT%\"
+    if exist post-install.bat.bak del post-install.bat.bak
+    copy post-install.bat post-install.bat.bak
     "%GIT_INSTALL_ROOT%\git-cmd.exe" --no-needs-console --no-cd --command=post-install.bat
     popd
 )

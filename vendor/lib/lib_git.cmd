@@ -263,6 +263,8 @@ exit /b
 :::-------------------------------------------------------------------------------
 
 :get_user_git_version
+    if not "%~1" == "" set test_dir=%~1
+
     :: get the version information for the user provided git binary
     %lib_git% read_version USER "%test_dir%" 2>nul
     %lib_git% validate_version USER %GIT_VERSION_USER%
