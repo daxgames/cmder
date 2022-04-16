@@ -2,6 +2,10 @@
 
 ## [Unreleased](https://ci.appveyor.com/project/MartiUK/cmder/build/artifacts) (2022-03-17)
 
+### Fixes
+
+- Fix find and use latest Git install always using vendored Git.
+
 ### Changes
 
 - Fix Git prompt branch when using Git worktree.
