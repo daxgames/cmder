@@ -224,8 +224,10 @@ set PLINK_PROTOCOL=ssh
 if defined GIT_INSTALL_ROOT (
     if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" goto :SPECIFIED_GIT
 ) else if "%fast_init%" == "1" (
-    REM Cmder fast init is enabled, skipping Git Auto-Detect!
-    goto :VENDORED_GIT
+    if exist "%CMDER_ROOT%\vendor\git-for-windows\cmd\git.exe" (
+      %print_debug% init.bat "Skipping Git Auto-Detect!"
+      goto :VENDORED_GIT
+    )
 )
 
 :: BEGIN GIT AUTO DETECTION
@@ -268,7 +270,7 @@ if not defined GIT_INSTALL_ROOT if exist "%CMDER_ROOT%\vendor\git-for-windows\cm
     set GIT_INSTALL_TYPE=VENDOR
     %lib_git% read_version VENDORED "%CMDER_ROOT%\vendor\git-for-windows\cmd" 2>nul
     %lib_git% validate_version VENDORED %GIT_VERSION_VENDORED%
-    %print_debug% "Using vendored Git '%GIT_VERSION_VENDORED%'..."
+    %print_debug% init.bat "Using vendored Git '%GIT_VERSION_VENDORED%'..."
     goto :CONFIGURE_GIT
 ) else (
     goto :NO_GIT
@@ -276,11 +278,11 @@ if not defined GIT_INSTALL_ROOT if exist "%CMDER_ROOT%\vendor\git-for-windows\cm
 
 :SPECIFIED_GIT
 %lib_git% get_user_git_version "%GIT_INSTALL_ROOT%\cmd"
-%print_debug% "Using Git '%GIT_VERSION_USER%' from '/GIT_INSTALL_ROOT' specified path '%GIT_INSTALL_ROOT%'..."
+%print_debug% init.bat "Using Git '%GIT_VERSION_USER%' from '/GIT_INSTALL_ROOT' specified path '%GIT_INSTALL_ROOT%'..."
 goto :CONFIGURE_GIT
 
 :FOUND_GIT
-%print_debug% "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
+%print_debug% init.bat "Using found Git '%GIT_VERSION_USER%' from '%GIT_INSTALL_ROOT%..."
 goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
