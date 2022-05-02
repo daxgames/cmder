@@ -163,9 +163,9 @@ exit /b
     :: checks all major, minor, patch and build variables for the given arguments.
     :: whichever binary that has the most recent version will be used based on the return code.
 
-    %print_debug% Comparing:
-    %print_debug% %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%
-    %print_debug% %~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%
+    %print_debug% ":compare_versions" "Comparing:"
+    %print_debug% ":compare_versions" "%~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
+    %print_debug% ":compare_versions" "%~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
 
     setlocal enabledelayedexpansion
     if !%~1_MAJOR! GTR !%~2_MAJOR! (endlocal & exit /b  1)
@@ -237,7 +237,6 @@ exit /b
         set "gitFolder=%test_dir:~0,-4%"
     ) else (
         set "gitFolder=%test_dir%"
-
     )
 
     :: use the user provided git if its version is greater than, or equal to the vendored git
@@ -263,8 +262,11 @@ exit /b
 :::-------------------------------------------------------------------------------
 
 :get_user_git_version
+    if not "%~1" == "" set test_dir=%~1
+
     :: get the version information for the user provided git binary
     %lib_git% read_version USER "%test_dir%" 2>nul
+    %print_debug% ":get_user_git_version" "get_user_git_version GIT_VERSION_USER: %GIT_VERSION_USER%"
     %lib_git% validate_version USER %GIT_VERSION_USER%
     exit  /b
 

@@ -4,9 +4,8 @@ setlocal enabledelayedexpansion
 set search=%~1
 set replace=%~2
 
-
-echo %search% | findstr -i "git" >nul
-if "%errorlevel%" == "1" exit /b
+%print_debug% %~n0 "search: %search%"
+%print_debug% %~n0 "replace: %replace%"
 
 set path=!path:%search%=%replace%!
 (endlocal
