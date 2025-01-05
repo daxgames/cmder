@@ -308,7 +308,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cfgPath, cpuCfgPath, FALSE))
 				{
-				    if (PathFileExists(windowsTerminalDir))
+					if (PathFileExists(windowsTerminalDir))
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -330,7 +330,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cpuCfgPath, cfgPath, FALSE))
 				{
-    				if (PathFileExists(windowsTerminalDir))
+					if (PathFileExists(windowsTerminalDir))
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
