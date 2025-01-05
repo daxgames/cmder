@@ -299,8 +299,8 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		// Set path to Cmder user ConEmu config file
 		PathCombine(userCfgPath, userConfigDirPath, L"user-ConEmu.xml");
 	}
-
-	if ( PathFileExists(cpuCfgPath) || use_user_cfg == false ) // config/[cpu specific terminal emulator config] file exists or /m was specified on command line, use machine specific config.
+	
+	if (wcscmp(cpuCfgPath, L"") != 0 && (PathFileExists(cpuCfgPath) || use_user_cfg == false)) // config/[host specific terminal emulator config] file exists or /m was specified on command line, use machine specific config.
 	{
 		if (cfgRoot.length() == 0) // '/c [path]' was NOT specified
 		{
@@ -308,8 +308,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cfgPath, cpuCfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
-					{
+				if (PathFileExists(windowsTerminalDir)) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_%COMPUTERNAME%_settings.json! Access Denied."
@@ -326,13 +325,12 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 					}
 				}
 			}
-			else // [terminal emulator config] file does not exist, copy config/[cpu specific terminal emulator config] file to [terminal emulator config] file
+			else // [terminal emulator config] file does not exist, copy config/[host specific terminal emulator config] file to [terminal emulator config] file
 			{
 				if (!CopyFile(cpuCfgPath, cfgPath, FALSE))
 
 				{
-					if (PathFileExists(windowsTerminalDir))
-					{
+				if (PathFileExists(windowsTerminalDir)) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy config/windows_terminal_%COMPUTERNAME%_settings.json file to vendor/windows-terminal/settings/settings.json! Access Denied."
@@ -351,7 +349,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			}
 		}
 	}
-	else if (PathFileExists(userCfgPath)) // config/user[terminal emulator config] file exists, use it.
+	else if (wcscmp(userCfgPath, L"") != 0 && PathFileExists(userCfgPath)) // config/user[terminal emulator config] file exists, use it.
 	{
 		if (cfgRoot.length() == 0) // '/c [path]' was NOT specified
 		{
@@ -359,8 +357,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cfgPath, userCfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
-					{
+					if (PathFileExists(windowsTerminalDir)) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_settings.json! Access Denied."
@@ -381,8 +378,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(userCfgPath, cfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
-					{
+					if (PathFileExists(windowsTerminalDir)) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy config/user_windows_terminal_settings.json file to vendor/windows-terminal/settings/settings.json! Access Denied."
@@ -410,8 +406,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		{
 			if (!CopyFile(cfgPath, userCfgPath, FALSE))
 			{
-				if (PathFileExists(windowsTerminalDir))
-				{
+				if (PathFileExists(windowsTerminalDir)) {
 					MessageBox(NULL,
 						(GetLastError() == ERROR_ACCESS_DENIED)
 						? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/user_windows_terminal_settings.json! Access Denied."
@@ -431,8 +426,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(defaultCfgPath, cfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
-					{
+					if (PathFileExists(windowsTerminalDir)) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal_default_settings_settings.json file to vendor/windows-terminal/settings/settings.json! Access Denied."
@@ -450,23 +444,20 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 				}
 			}
 		}
-		else {
-			if (!CopyFile(defaultCfgPath, cfgPath, FALSE) && PathFileExists(conEmuDir))
-			{
-				MessageBox(NULL,
-					(GetLastError() == ERROR_ACCESS_DENIED)
-					? L"Failed to copy vendor/ConEmu.xml.default file to vendor/conemu-maximus5/ConEmu.xml! Access Denied."
-					: L"Failed to copy vendor/ConEmu.xml.default file to vendor/conemu-maximus5/ConEmu.xml!", MB_TITLE, MB_ICONSTOP);
-					exit(1);
-			}
+		else if (!CopyFile(defaultCfgPath, cfgPath, FALSE) && PathFileExists(conEmuDir))
+		{
+			MessageBox(NULL,
+				(GetLastError() == ERROR_ACCESS_DENIED)
+				? L"Failed to copy vendor/ConEmu.xml.default file to vendor/conemu-maximus5/ConEmu.xml! Access Denied."
+				: L"Failed to copy vendor/ConEmu.xml.default file to vendor/conemu-maximus5/ConEmu.xml!", MB_TITLE, MB_ICONSTOP);
+			exit(1);
 		}
 	}
-	else if (PathFileExists(cfgPath)) // This is a first time Cmder.exe run and [terminal emulator config] file exists, copy [terminal emulator config] file to config/user_[terminal emulator config] file.
+	else if (wcscmp(cfgPath, L"") != 0 && PathFileExists(cfgPath)) // This is a first time Cmder.exe run and [terminal emulator config] file exists, copy [terminal emulator config] file to config/user_[terminal emulator config] file.
 	{
 		if (!CopyFile(cfgPath, userCfgPath, FALSE))
 		{
-			if (PathFileExists(windowsTerminalDir))
-			{
+			if (PathFileExists(windowsTerminalDir)) {
 				MessageBox(NULL,
 					(GetLastError() == ERROR_ACCESS_DENIED)
 					? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/user_windows_terminal_settings_settings.json! Access Denied."
@@ -485,12 +476,11 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 		PathCombine(userConEmuCfgPath, userConfigDirPath, L"user-ConEmu.xml");
 	}
-	else if (wcscmp(defaultCfgPath, L"") == 0) // '/c [path]' was specified and 'vendor/[terminal emulator config].default' config exists, copy Cmder 'vendor/[terminal emulator config].default' file to '[user specified path]/config/user_[terminal emulator config]'.
+	else if (wcscmp(defaultCfgPath, L"") != 0) // '/c [path]' was specified and 'vendor/[terminal emulator config].default' config exists, copy Cmder 'vendor/[terminal emulator config].default' file to '[user specified path]/config/user_[terminal emulator config]'.
 	{
 		if (!CopyFile(defaultCfgPath, userCfgPath, FALSE))
 		{
-			if (PathFileExists(windowsTerminalDir))
-			{
+			if (PathFileExists(windowsTerminalDir)) {
 				MessageBox(NULL,
 					(GetLastError() == ERROR_ACCESS_DENIED)
 					? L"Failed to copy vendor/windows-terminal_default_settings_settings.json file to [user specified path]/config/user_windows_terminal_settings.json! Access Denied."
