@@ -153,7 +153,8 @@ if not "%CMDER_SHELL%" == "cmd" (
     set CMDER_ALIASES=0
 )
 
-:: Pick right version of Clink
+:: Pick the right version of Clink
+:: TODO: Support for ARM
 if "%PROCESSOR_ARCHITECTURE%"=="x86" (
     set clink_architecture=x86
     set architecture_bits=32
@@ -165,9 +166,24 @@ if "%PROCESSOR_ARCHITECTURE%"=="x86" (
     set CMDER_CLINK=0
 )
 
+if defined CMDER_USER_CONFIG (
+  if exist "%CMDER_ROOT%\config\user_init.cmd" (
+    call "%CMDER_ROOT%\config\user_init.cmd"
+    exit /b
+  ) else if exist "%CMDER_USER_CONFIG%\config\user_init.cmd" (
+    call "%CMDER_USER_CONFIG%\config\user_init.cmd"
+    exit /b
+  )
+) else if exist "%CMDER_ROOT%\config\user_init.cmd" (
+  call "%CMDER_ROOT%\config\user_init.cmd"
+  exit /b
+)
+
 if "%CMDER_CLINK%" == "1" (
-    REM TODO: If clink is already injected, goto :CLINK_FINISH
+    REM TODO: Detect if clink is already injected, if so goto :CLINK_FINISH
     goto :INJECT_CLINK
+) else if "%CMDER_CLINK%" == "2" (
+  goto :CLINK_FINISH
 )
 
 goto :SKIP_CLINK
@@ -204,9 +220,12 @@ goto :SKIP_CLINK
     )
 
     "%CMDER_ROOT%\vendor\clink\clink_%clink_architecture%.exe" inject --quiet --profile "%CMDER_CONFIG_DIR%" --scripts "%CMDER_ROOT%\vendor"
+    set CMDER_CLINK=2
 
-    if errorlevel 1 (
-        %print_error% "Clink initialization has failed with error code: %errorlevel%"
+    :: Check if a fatal error occurred when trying to inject Clink
+    if errorlevel 2 (
+        REM %print_error% "Clink injection has failed with error code: %errorlevel%"
+        goto :SKIP_CLINK
     )
 
     goto :CLINK_FINISH
@@ -237,8 +256,8 @@ if "%CMDER_CONFIGURED%" GTR "1" (
 :: Prepare for git-for-windows
 
 :: Detect which git.exe version to use
-:: * if the users points as to a specific git, use that
-:: * test if a git is in path and if yes, use that
+:: * if the user points to a specific git, use that
+:: * test if git is in path and if yes, use that
 :: * last, use our vendored git
 :: also check that we have a recent enough version of git by examining the version string
 if defined GIT_INSTALL_ROOT (
@@ -296,7 +315,7 @@ if exist "%CMDER_ROOT%\vendor\git-for-windows" (
 )
 
 :SPECIFIED_GIT
-%print_debug% init.bat "Using /GIT_INSTALL_ROOT..."
+%print_debug% init.bat "Using specified GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%...."
 goto :CONFIGURE_GIT
 
 :FOUND_GIT
@@ -305,8 +324,13 @@ goto :CONFIGURE_GIT
 
 :CONFIGURE_GIT
 %print_debug% init.bat "Using Git from '%GIT_INSTALL_ROOT%..."
+
 :: Add git to the path
-if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" %lib_path% enhance_path "%GIT_INSTALL_ROOT%\cmd" ""
+%print_debug% init.bat "START - git.exe(prepend): Env Var - PATH=%path%"
+if exist "%GIT_INSTALL_ROOT%\cmd\git.exe" (
+  set "path=%GIT_INSTALL_ROOT%\cmd;%path%"
+)
+%print_debug% init.bat "END - git.exe(prepend): Env Var - PATH=%path%"
 
 :: Add the unix commands at the end to not shadow windows commands like `more` and `find`
 if %nix_tools% equ 1 (
@@ -317,16 +341,30 @@ if %nix_tools% equ 1 (
     set "path_position="
 )
 
+%print_debug% init.bat "START - nix_tools(%path_position%): Env Var - PATH=%path%"
 if %nix_tools% geq 1 (
     if exist "%GIT_INSTALL_ROOT%\mingw32" (
-        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw32\bin" %path_position%
+        if "%path_position%" == "append" (
+          set "path=%path%;%GIT_INSTALL_ROOT%\mingw32\bin"
+        ) else (
+          set "path=%GIT_INSTALL_ROOT%\mingw32\bin;%path%"
+        )
     ) else if exist "%GIT_INSTALL_ROOT%\mingw64" (
-        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\mingw64\bin" %path_position%
+        if "%path_position%" == "append" (
+          set "path=%path%;%GIT_INSTALL_ROOT%\mingw64\bin"
+        ) else (
+          set "path=%GIT_INSTALL_ROOT%\mingw64\bin;%path%"
+        )
     )
     if exist "%GIT_INSTALL_ROOT%\usr\bin" (
-        %lib_path% enhance_path "%GIT_INSTALL_ROOT%\usr\bin" %path_position%
+        if "%path_position%" == "append" (
+          set "path=%path%;%GIT_INSTALL_ROOT%\usr\bin"
+        ) else (
+          set "path=%GIT_INSTALL_ROOT%\usr\bin;%path%"
+        )
     )
 )
+%print_debug% init.bat "END - nix_tools(%path_position%): Env Var - PATH=%path%"
 
 :SET_ENV
 
@@ -359,8 +397,7 @@ if defined git_locale (
 )
 endlocal && set LANG=%LANG%
 
-%print_debug% init.bat "Env Var - GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%"
-%print_debug% init.bat "Found Git in: '%GIT_INSTALL_ROOT%'"
+%print_debug% init.bat "Found Git in: 'GIT_INSTALL_ROOT=%GIT_INSTALL_ROOT%'"
 goto :PATH_ENHANCE
 
 :NO_GIT
@@ -368,14 +405,32 @@ goto :PATH_ENHANCE
 endlocal
 
 :PATH_ENHANCE
-%lib_path% enhance_path "%CMDER_ROOT%\vendor\bin"
+%print_debug% init.bat "START - vendor/bin(prepend): Env Var - PATH=%path%"
+set "path=%CMDER_ROOT%\vendor\bin;%path%"
+%print_debug% init.bat "END - vendor/bin(prepend): Env Var - PATH=%path%"
 
 :USER_CONFIG_START
-%lib_path% enhance_path_recursive "%CMDER_ROOT%\bin" 0 %max_depth%
-if defined CMDER_USER_BIN (
-    %lib_path% enhance_path_recursive "%CMDER_USER_BIN%" 0 %max_depth%
+%print_debug% init.bat "START - bin(prepend): Env Var - PATH=%path%"
+if %max_depth% gtr 1 (
+  %lib_path% enhance_path_recursive "%CMDER_ROOT%\bin" 0 %max_depth%
+) else (
+  set "path=%CMDER_ROOT%\bin;%path%"
 )
-%lib_path% enhance_path "%CMDER_ROOT%" append
+%print_debug% init.bat "END - bin(prepend): Env Var - PATH=%path%"
+
+if defined CMDER_USER_BIN if defined CMDER_USER_ROOT (
+  %print_debug% init.bat "START - user_bin(prepend): Env Var - PATH=%path%"
+  if %max_depth% gtr 1 (
+    %lib_path% enhance_path_recursive "%CMDER_USER_BIN%" 0 %max_depth%
+  ) else (
+    set "path=%CMDER_USER_ROOT%\bin;%path%"
+  )
+  %print_debug% init.bat "END - user_bin(prepend): Env Var - PATH=!path!"
+)
+
+%print_debug% init.bat "START - cmder_root(append): Env Var - PATH=%path%"
+set "path=%path%;%CMDER_ROOT%"
+%print_debug% init.bat "END - cmder_root(append): Env Var - PATH=%path%"
 
 :: Drop *.bat and *.cmd files into "%CMDER_ROOT%\config\profile.d"
 :: to run them at startup.
@@ -423,7 +478,7 @@ if "%CMDER_ALIASES%" == "1" (
 )
 
 :: Add aliases to the environment
-type "%user_aliases%" | findstr /b /l /i "history=cat " >nul
+type "%user_aliases%" | %WINDIR%\System32\findstr /b /l /i "history=cat " >nul
 if "%ERRORLEVEL%" == "0" (
     echo Migrating alias 'history' to new Clink 1.x.x...
     call "%CMDER_ROOT%\vendor\bin\alias.cmd" /d history
@@ -484,12 +539,40 @@ if "%CMDER_ALIASES%" == "1" if exist "%CMDER_ROOT%\bin\alias.bat" if exist "%CMD
 
 set initialConfig=
 
-:CMDER_CONFIGURED
-if not defined CMDER_CONFIGURED set CMDER_CONFIGURED=1
+if not exist "%CMDER_CONFIG_DIR%\user_init.cmd" (
+  powershell -f "%cmder_root%\vendor\bin\create-cmdercfg.ps1" -shell cmd -outfile "%CMDER_CONFIG_DIR%\user_init.cmd"
 
-set CMDER_INIT_END=%time%
-
-if %time_init% gtr 0 (
-    "%cmder_root%\vendor\bin\timer.cmd" "%CMDER_INIT_START%" "%CMDER_INIT_END%"
+  if not exist "%CMDER_ROOT%\config\user_init.cmd" (
+    %print_error% "Failed to generate Cmder config"
+  )
 )
+
+:CMDER_CONFIGURED
+  if not defined CMDER_CONFIGURED set CMDER_CONFIGURED=1
+  set CMDER_INIT_END=%time%
+
+  if "%time_init%" == "1" if "%CMDER_INIT_END%" neq "" if "%CMDER_INIT_START%" neq "" (
+    call "%cmder_root%\vendor\bin\timer.cmd" "%CMDER_INIT_START%" "%CMDER_INIT_END%"
+  )
+
+:CLEANUP
+  set architecture_bits=
+  set CMDER_ALIASES=
+  set CMDER_INIT_END=
+  set CMDER_INIT_START=
+  set CMDER_USER_FLAGS=
+  set CMDER_CLINK=
+  set debug_output=
+  set fast_init=
+  set max_depth=
+  set nix_tools=
+  set path_position=
+  set print_debug=
+  set print_error=
+  set print_verbose=
+  set print_warning=
+  set time_init=
+  set verbose_output=
+  set user_aliases=
+
 exit /b
