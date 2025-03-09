@@ -26,3 +26,5 @@ config\user-*
 config\user_*
 clink_history*
 *.log
+Vagrantfile
+*.box
