@@ -1,15 +1,23 @@
 # Change Log
 
-## [UNRELEASED](https://github.com/cmderdev/cmder/tree/master) (2022-06-05)
+## [UNRELEASED](https://github.com/cmderdev/cmder/tree/master) (2025-03-09)
 
-### Adds
+### Fixes
 
-- Cmder Mini
-  - Launching Git Bash from external Git for Windows install.
+- Fixes #2940
 
 ### Changes
 
 - Update Git Prompt with changes from Git for Windows
+
+### Adds
+
+- Cmder for Windows
+    - Uses Windows and Git for Windows Native Terminals.
+    - Does not contain a terminal emulator like ConEmu or Windows Terminal.
+- Cmder Mini
+  - Launching Git Bash from external Git for Windows install.
+
 
 ## [1.3.20](https://github.com/cmderdev/cmder/tree/v1.3.20) (2022-03-18)
 
