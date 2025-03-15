@@ -53,6 +53,7 @@ foreach ($git in (Get-Command -ErrorAction SilentlyContinue 'git')) {
     Write-Debug "GIT USER: ${gitVersionUser}"
 
     $useGitVersion = compare_git_versions -userVersion $gitVersionUser -vendorVersion $gitVersionVendor
+    Write-Debug "Using Git Version: ${useGitVersion}"
 
     # Use user installed Git
     if ($null -eq $gitPathUser) {

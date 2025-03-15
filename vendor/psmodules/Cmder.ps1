@@ -44,21 +44,21 @@ function compareVersions($userVersion, $vendorVersion) {
         return 1
     }
 
-    if (($userMajor -eq $vendorMajor) -and  ($userMinor -eq $vendorMinor) -and  ($userPatch -eq $vendorPatch) -and  ($userBuild -eq $vendorBuild)) {
+    if (($userMajor -eq $vendorMajor) -and ($userMinor -eq $vendorMinor) -and ($userPatch -eq $vendorPatch) -and ($userBuild -eq $vendorBuild)) {
         return 1
     }
 
-    if ($userMajor -gt $vendorMajor) {return 1}
-    if ($userMajor -lt $vendorMajor) {return -1}
+    if ($userMajor -gt $vendorMajor) { return 1 }
+    if ($userMajor -lt $vendorMajor) { return -1 }
 
-    if ($userMinor -gt $vendorMinor) {return 1}
-    if ($userMinor -lt $vendorMinor) {return -1}
+    if ($userMinor -gt $vendorMinor) { return 1 }
+    if ($userMinor -lt $vendorMinor) { return -1 }
 
-    if ($userPatch -gt $vendorPatch) {return 1}
-    if ($userPatch -lt $vendorPatch) {return -1}
+    if ($userPatch -gt $vendorPatch) { return 1 }
+    if ($userPatch -lt $vendorPatch) { return -1 }
 
-    if ($userBuild -gt $vendorBuild) {return 1}
-    if ($userBuild -lt $vendorBuild) {return -1}
+    if ($userBuild -gt $vendorBuild) { return 1 }
+    if ($userBuild -lt $vendorBuild) { return -1 }
 
     return 0
 }
