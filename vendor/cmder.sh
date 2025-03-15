@@ -22,7 +22,11 @@ function runProfiled {
 }
 
 # We do this for bash as admin sessions since $CMDER_ROOT is not being set
-if [ "$CMDER_ROOT" == "" ] ; then
+if [ -z "$CMDER_ROOT" ] && [ -n "$cmder_root" ] ; then
+  export CMDER_ROOT=$(cygpath -u $cmder_root)
+fi
+
+if [ -z "$CMDER_ROOT" ] ; then
     case "$ConEmuDir" in *\\*) CMDER_ROOT=$( cd "$(cygpath -u "$ConEmuDir")/../.." ; pwd );; esac
 else
     case "$CMDER_ROOT" in *\\*) CMDER_ROOT="$(cygpath -u "$CMDER_ROOT")";; esac
@@ -33,19 +37,19 @@ CMDER_ROOT=$(echo $CMDER_ROOT | sed 's:/*$::')
 
 export CMDER_ROOT
 
-if [ -d "/c/Program Files/Git" ] ; then
+if [ -f "/c/Program Files/Git/cmd/git.exe" ] ; then
     GIT_INSTALL_ROOT="/c/Program Files/Git"
-elif [ -d "/c/Program Files(x86)/Git" ] ; then
+elif [ -f "/c/Program Files(x86)/Git/cmd/git.exe" ] ; then
     GIT_INSTALL_ROOT="/c/Program Files(x86)/Git"
-elif [ -d "${CMDER_ROOT}/vendor/git-for-windows" ] ; then
+elif [ -f "${CMDER_ROOT}/vendor/git-for-windows/cmd/git.exe" ] ; then
     GIT_INSTALL_ROOT=${CMDER_ROOT}/vendor/git-for-windows
 fi
 
 if [[ ! "$PATH" =~ "${GIT_INSTALL_ROOT}/bin:" ]] ; then
-  PATH=${GIT_INSTALL_ROOT}/bin:$PATH
+  PATH="${GIT_INSTALL_ROOT}/bin:$PATH"
 fi
 
-PATH=${CMDER_ROOT}/bin:${CMDER_ROOT}/vendor/bin:$PATH:${CMDER_ROOT}
+PATH="${CMDER_ROOT}/bin:${CMDER_ROOT}/vendor/bin:$PATH:${CMDER_ROOT}"
 
 export PATH
 
@@ -80,7 +84,7 @@ if [ "${CMDER_USER_CONFIG}" != "" ] ; then
     mv "$CMDER_USER_CONFIG/user-profile.sh" "$CMDER_USER_CONFIG/user_profile.sh"
   fi
 
-  export PATH=${CMDER_USER_CONFIG}/bin:$PATH
+  export PATH="${CMDER_USER_CONFIG}/bin:$PATH"
 
   CmderUserProfilePath="${CMDER_USER_CONFIG}/user_profile.sh"
   if [ -f "${CMDER_USER_CONFIG}/user_profile.sh" ] ; then

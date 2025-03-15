@@ -11,11 +11,15 @@
 .EXAMPLE
     .\build.ps1
 
-    Executes the default build for Cmder; Conemu, clink. This is equivalent to the "minimum" style package in the releases
+    Executes the default build for Cmder; ConEmu, clink. This is equivalent to the "minimum" style package in the releases
 .EXAMPLE
     .\build.ps1 -Compile
 
     Recompile the launcher executable if you have the requisite build tools for C++ installed.
+.EXAMPLE
+    .\build.ps1 -Compile -NoVendor
+
+    Skip all downloads and only build launcher.
 .EXAMPLE
     .\build -verbose
 
@@ -29,124 +33,188 @@
     Samuel Vasko, Jack Bennett
     Part of the Cmder project.
 .LINK
-    http://cmder.net/ - Project Home
+    http://cmder.app/ - Project Home
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding(SupportsShouldProcess = $true)]
 Param(
     # CmdletBinding will give us;
     # -verbose switch to turn on logging and
     # -whatif switch to not actually make changes
 
     # Path to the vendor configuration source file
-    [string]$sourcesPath = "..\vendor\sources.json",
+    [string]$sourcesPath = "$PSScriptRoot\..\vendor\sources.json",
 
     # Vendor folder location
-    [string]$saveTo = "..\vendor\",
+    [string]$saveTo = "$PSScriptRoot\..\vendor\",
 
     # Launcher folder location
-    [string]$launcher = "..\launcher",
+    [string]$launcher = "$PSScriptRoot\..\launcher",
 
     # Config folder location
-    [string]$config = "..\config",
+    [string]$config = "$PSScriptRoot\..\config",
 
-    # New launcher if you have MSBuild tools installed
+    # Using this option will skip all downloads, if you only need to build launcher
+    [switch]$noVendor,
+    
+    # Using this option will specify the emulator to use [none, all, conemu-maximus5, or windows-terminal]
+    [string]$terminal = 'all',
+
+    # Build launcher if you have MSBuild tools installed
     [switch]$Compile
 )
 
 # Get the scripts and cmder root dirs we are building in.
-$ScriptRoot = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
-$cmder_root = $ScriptRoot.replace("\scripts","")
+$cmder_root = Resolve-Path "$PSScriptRoot\.."
 
 # Dot source util functions into this scope
 . "$PSScriptRoot\utils.ps1"
 $ErrorActionPreference = "Stop"
 
-Push-Location -Path $saveTo
-$sources = Get-Content $sourcesPath | Out-String | Convertfrom-Json
+if ($Compile) {
+    # Check for requirements
+    Ensure-Executable "msbuild"
 
-# Get the version string
-$version = Get-VersionStr
+    # Get the version string
+    $version = Get-VersionStr
 
-# Check for requirements
-Ensure-Exists $sourcesPath
-Ensure-Executable "7z"
-New-Item -Type Directory -Path (Join-Path $saveTo "/tmp/") -ErrorAction SilentlyContinue >$null
-
-# Preserve modified (by user) ConEmu setting file
-if ($config -ne "") {
-    $ConEmuXml = Join-Path $saveTo "conemu-maximus5\ConEmu.xml"
-    if (Test-Path $ConEmuXml -pathType leaf) {
-        $ConEmuXmlSave = Join-Path $config "ConEmu.xml"
-        Write-Verbose "Backup '$ConEmuXml' to '$ConEmuXmlSave'"
-        Copy-Item $ConEmuXml $ConEmuXmlSave
-    } else { $ConEmuXml = "" }
-} else { $ConEmuXml = "" }
-
-# Kill ssh-agent.exe if it is running from the $env:cmder_root we are building
-foreach ($ssh_agent in $(get-process ssh-agent -erroraction silentlycontinue)) {
-  if ([string]$($ssh_agent.path) -match [string]$cmder_root.replace('\','\\')) {
-    write-verbose $("Stopping " + $ssh_agent.path + "!")
-    stop-process $ssh_agent.id
-  }
-}
-
-$vend = $pwd
-foreach ($s in $sources) {
-    Write-Verbose "Getting $($s.name) from URL $($s.url)"
-
-    # We do not care about the extensions/type of archive
-    $tempArchive = "tmp/$($s.name).tmp"
-    Delete-Existing $tempArchive
-    Delete-Existing $s.name
-
-    Download-File -Url $s.url -File $vend\$tempArchive -ErrorAction Stop
-    Extract-Archive $tempArchive $s.name
-
-    if ((Get-Childitem $s.name).Count -eq 1) {
-        Flatten-Directory($s.name)
-    }
-    # Write current version to .cmderver file, for later.
-    "$($s.version)" | Out-File "$($s.name)/.cmderver"
-}
-
-# Restore user configuration
-if ($ConEmuXml -ne "") {
-    Write-Verbose "Restore '$ConEmuXmlSave' to '$ConEmuXml'"
-    Copy-Item $ConEmuXmlSave $ConEmuXml
-}
-
-Pop-Location
-
-if($Compile) {
     Push-Location -Path $launcher
-    Create-RC $version ($launcher + '\src\version.rc2');
-    msbuild CmderLauncher.vcxproj /t:Clean,Build /p:configuration=Release
+    Create-RC $version ($launcher + '\src\version.rc2')
+
+    Write-Verbose "Building the launcher..."
+
+    # Reference: https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+    msbuild CmderLauncher.vcxproj /t:Clean,Build /p:configuration=Release /m
+
     if ($LastExitCode -ne 0) {
-        throw "msbuild failed to build the executable."
-    }
-    else {
-        Write-Verbose "successfully built Cmder v$version!"
-        if ( $Env:APPVEYOR -eq 'True' ) {
-            Add-AppveyorMessage -Message "Building Cmder v$version was successful." -Category Information
-        }
+        throw "MSBuild failed to build the launcher executable."
     }
     Pop-Location
-} else {
-    Write-Warning "You are not building a launcher, Use -Compile"
+}
+
+if (-not $noVendor) {
+    # Check for requirements
+    Ensure-Exists $sourcesPath
+    Ensure-Executable "7z"
+
+    # Get the vendor sources
+    $sources = Get-Content $sourcesPath | Out-String | ConvertFrom-Json
+
+    Push-Location -Path $saveTo
+    New-Item -Type Directory -Path (Join-Path $saveTo "/tmp/") -ErrorAction SilentlyContinue >$null
+
+    $vend = $pwd
+
+    # Preserve modified (by user) ConEmu setting file
+    if ($config -ne "") {
+        $ConEmuXml = Join-Path $saveTo "conemu-maximus5\ConEmu.xml"
+        if (Test-Path $ConEmuXml -pathType leaf) {
+            $ConEmuXmlSave = Join-Path $config "ConEmu.xml"
+            Write-Verbose "Backup '$ConEmuXml' to '$ConEmuXmlSave'"
+            Copy-Item $ConEmuXml $ConEmuXmlSave
+        }
+        else { $ConEmuXml = "" }
+    }
+    else { $ConEmuXml = "" }
+
+    # Preserve modified (by user) Windows Terminal setting file
+    if ($config -ne "") {
+        $WinTermSettingsJson = Join-Path $saveTo "windows-terminal\settings\settings.json"
+        if (Test-Path $WinTermSettingsJson -pathType leaf) {
+            $WinTermSettingsJsonSave = Join-Path $config "windows_terminal_settings.json"
+            Write-Verbose "Backup '$WinTermSettingsJson' to '$WinTermSettingsJsonSave'"
+            Copy-Item $WinTermSettingsJson $WinTermSettingsJsonSave
+        }
+        else { $WinTermSettingsJson = "" }
+    }
+    else { $WinTermSettingsJson = "" }
+
+    # Kill ssh-agent.exe if it is running from the $env:cmder_root we are building
+    foreach ($ssh_agent in $(Get-Process ssh-agent -ErrorAction SilentlyContinue)) {
+        if ([string]$($ssh_agent.path) -Match [string]$cmder_root.replace('\', '\\')) {
+            Write-Verbose $("Stopping " + $ssh_agent.path + "!")
+            Stop-Process $ssh_agent.id
+        }
+    }
+
+    foreach ($s in $sources) {
+        if ($terminal -eq "none") {
+          return
+        } elseif ($s.name -eq "conemu-maximus5" -and $terminal -eq "windows-terminal") {
+          return
+        } elseif ($s.name -eq "windows-terminal" -and $terminal -eq  "conemu-maximus5") {
+          return
+        }
+ 
+        Write-Verbose "Getting vendored $($s.name) $($s.version)..."
+
+        # We do not care about the extensions/type of archive
+        $tempArchive = "tmp/$($s.name).tmp"
+        Delete-Existing $tempArchive
+        Delete-Existing $s.name
+
+        Download-File -Url $s.url -File $vend\$tempArchive -ErrorAction Stop
+        Extract-Archive $tempArchive $s.name
+
+        # Make Embedded Windows Terminal Portable
+        if ($s.name -eq "windows-terminal") {
+          $windowTerminalFiles = resolve-path ($saveTo + "\" + $s.name + "\terminal*")
+          move-item -ErrorAction SilentlyContinue $windowTerminalFiles\* $s.name >$null
+          remove-item -ErrorAction SilentlyContinue $windowTerminalFiles >$null
+          write-verbose "Making Windows Terminal Portable..."
+          New-Item -Type Directory -Path (Join-Path $saveTo "/windows-terminal/settings") -ErrorAction SilentlyContinue >$null
+          New-Item -Type File -Path (Join-Path $saveTo "/windows-terminal/.portable") -ErrorAction SilentlyContinue >$null
+        }
+
+        if ((Get-ChildItem $s.name).Count -eq 1) {
+            Flatten-Directory($s.name)
+        }
+
+        # Write current version to .cmderver file, for later.
+        "$($s.version)" | Out-File "$($s.name)/.cmderver"
+    }
+
+    # Restore ConEmu user configuration
+    if ($ConEmuXml -ne "") {
+        Write-Verbose "Restore '$ConEmuXmlSave' to '$ConEmuXml'"
+        Copy-Item $ConEmuXmlSave $ConEmuXml
+    }
+
+    # Restore Windows Terminal user configuration
+    if ($WinTermSettingsJson -ne "") {
+        Write-Verbose "Restore '$WinTermSettingsJsonSave' to '$WinTermSettingsJson'"
+        Copy-Item $WinTermSettingsJsonSave $WinTermSettingsJson
+    }
+
+    # Put vendor\cmder.sh in /etc/profile.d so it runs when we start bash or mintty
+    if ( (Test-Path $($saveTo + "git-for-windows/etc/profile.d") ) ) {
+        Write-Verbose "Adding cmder.sh /etc/profile.d"
+        Copy-Item $($saveTo + "cmder.sh") $($saveTo + "git-for-windows/etc/profile.d/cmder.sh")
+    }
+
+    # Replace /etc/profile.d/git-prompt.sh with cmder lambda prompt so it runs when we start bash or mintty
+    if ( !(Test-Path $($saveTo + "git-for-windows/etc/profile.d/git-prompt.sh.bak") ) ) {
+        Write-Verbose "Replacing /etc/profile.d/git-prompt.sh with our git-prompt.sh"
+        Move-Item $($saveTo + "git-for-windows/etc/profile.d/git-prompt.sh") $($saveTo + "git-for-windows/etc/profile.d/git-prompt.sh.bak")
+        Copy-Item $($saveTo + "git-prompt.sh") $($saveTo + "git-for-windows/etc/profile.d/git-prompt.sh")
+    }
+
+    Pop-Location
+}
+
+if (-not $Compile -or $noVendor) {
+    Write-Warning "You are not building the full project, Use -Compile without -noVendor"
     Write-Warning "This cannot be a release. Test build only!"
+    return
 }
 
-# Put vendor\cmder.sh in /etc/profile.d so it runs when we start bash or mintty
-if ( (Test-Path $($SaveTo + "git-for-windows/etc/profile.d") ) ) {
-  write-verbose "Adding cmder.sh /etc/profile.d"
-  Copy-Item $($SaveTo + "cmder.sh") $($SaveTo + "git-for-windows/etc/profile.d/cmder.sh")
+Write-Verbose "Successfully built Cmder v$version!"
+
+if ( $Env:APPVEYOR -eq 'True' ) {
+    Add-AppveyorMessage -Message "Building Cmder v$version was successful." -Category Information
 }
 
-# Replace /etc/profile.d/git-prompt.sh with cmder lambda prompt so it runs when we start bash or mintty
-if ( !(Test-Path $($SaveTo + "git-for-windows/etc/profile.d/git-prompt.sh.bak") ) ) {
-  write-verbose "Replacing /etc/profile.d/git-prompt.sh with our git-prompt.sh"
-  Move-Item $($SaveTo + "git-for-windows/etc/profile.d/git-prompt.sh") $($SaveTo + "git-for-windows/etc/profile.d/git-prompt.sh.bak")
-  Copy-Item $($SaveTo + "git-prompt.sh") $($SaveTo + "git-for-windows/etc/profile.d/git-prompt.sh")
+if ( $Env:GITHUB_ACTIONS -eq 'true' ) {
+    Write-Output "::notice title=Build Complete::Building Cmder v$version was successful."
 }
 
-Write-Verbose "All good and done!"
+Write-Host -ForegroundColor green "All good and done!"
