@@ -2,10 +2,15 @@
 
 ## Unreleased
 
+### Fixes
+
+- Fixes #2940
+
 ### Adds
 
 - Cmder for Windows
-    - Cmder for Windows uses Windows Native Terminals and does not contain ConEmu.
+    - Uses Windows and Git for Windows Native Terminals.
+    - Does not contain a terminal emulator like ConEmu or Windows Terminal.
 
 ## [1.3.20](https://github.com/cmderdev/cmder/tree/v1.3.20) (2022-03-18)
 

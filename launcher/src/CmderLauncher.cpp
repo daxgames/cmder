@@ -107,9 +107,9 @@ bool FileExists(const wchar_t * filePath)
 
 void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstring taskName = L"", std::wstring title = L"", std::wstring iconPath = L"", std::wstring cfgRoot = L"", bool use_user_cfg = true, std::wstring conemu_args = L"", bool admin = false)
 {
-#if USE_TASKBAR_API
-	wchar_t appId[MAX_PATH] = { 0 };
-#endif
+	#if USE_TASKBAR_API
+		wchar_t appId[MAX_PATH] = { 0 };
+	#endif
 	wchar_t exeDir[MAX_PATH] = { 0 };
 	wchar_t icoPath[MAX_PATH] = { 0 };
 	wchar_t cfgPath[MAX_PATH] = { 0 };
@@ -153,9 +153,9 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	GetModuleFileName(NULL, exeDir, sizeof(exeDir));
 
-#if USE_TASKBAR_API
-	wcscpy_s(appId, exeDir);
-#endif
+	#if USE_TASKBAR_API
+		wcscpy_s(appId, exeDir);
+	#endif
 
 	PathRemoveFileSpec(exeDir);
 
@@ -313,7 +313,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_%COMPUTERNAME%_settings.json! Access Denied."
-							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_teerminal_%COMPUTERNAME%_settigns.json!", MB_TITLE, MB_ICONSTOP);
+							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_%COMPUTERNAME%_settigns.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
 					else if (PathFileExists(conEmuDir))
@@ -363,7 +363,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_settings.json! Access Denied."
-							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_teerminal_settigns.json!", MB_TITLE, MB_ICONSTOP);
+							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_settigns.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
 					else if (PathFileExists(conEmuDir))
@@ -653,10 +653,10 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	STARTUPINFO si = { 0 };
 
 	si.cb = sizeof(STARTUPINFO);
-#if USE_TASKBAR_API
-	si.lpTitle = appId;
-	si.dwFlags = STARTF_TITLEISAPPID;
-#endif
+  #if USE_TASKBAR_API
+  	si.lpTitle = appId;
+  	si.dwFlags = STARTF_TITLEISAPPID;
+  #endif
 	PROCESS_INFORMATION pi;
 
 	// MessageBox(NULL, terminalPath, _T("Error"), MB_OK);
@@ -1050,7 +1050,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	}
 	else
 	{
-		StartCmder(cmderOptions.cmderStart, cmderOptions.cmderSingle, cmderOptions.cmderTask, cmderOptions.cmderTitle, cmderOptions.cmderIcon, cmderOptions.cmderCfgRoot, cmderOptions.cmderUserCfg, cmderOptions.cmderTerminalArgs, cmderOptions.cmderAdmin);	}
+		StartCmder(cmderOptions.cmderStart, cmderOptions.cmderSingle, cmderOptions.cmderTask, cmderOptions.cmderTitle, cmderOptions.cmderIcon, cmderOptions.cmderCfgRoot, cmderOptions.cmderUserCfg, cmderOptions.cmderTerminalArgs, cmderOptions.cmderAdmin);
+	}
 
 	return 0;
 }
