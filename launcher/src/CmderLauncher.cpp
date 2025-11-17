@@ -653,10 +653,10 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	STARTUPINFO si = { 0 };
 
 	si.cb = sizeof(STARTUPINFO);
-  #if USE_TASKBAR_API
-  	si.lpTitle = appId;
-  	si.dwFlags = STARTF_TITLEISAPPID;
-  #endif
+	#if USE_TASKBAR_API
+		si.lpTitle = appId;
+		si.dwFlags = STARTF_TITLEISAPPID;
+	#endif
 	PROCESS_INFORMATION pi;
 
 	// MessageBox(NULL, terminalPath, _T("Error"), MB_OK);
