@@ -8,6 +8,22 @@
 
     You will need to make this script executable by setting your Powershell Execution Policy to Remote signed
     Then unblock the script for execution with UnblockFile .\build.ps1
+.PARAMETER sourcesPath
+    Path to the vendor sources JSON file. Defaults to `vendor\sources.json`.
+.PARAMETER saveTo
+    Path to the vendor folder where downloads are extracted.
+.PARAMETER launcher
+    Path to the launcher project folder used when `-Compile` is set.
+.PARAMETER config
+    Path to the config folder where user settings are backed up and restored.
+.PARAMETER noVendor
+    Skip all vendor downloads and extraction. Useful when only building the launcher.
+.PARAMETER terminal
+    Select which terminal packages to include: `none`, `all`, `conemu-maximus5`, or `windows-terminal`.
+.PARAMETER Compile
+    Build the Cmder launcher using MSBuild. Requires C++ build tools.
+.PARAMETER InstallPacman
+    Install pacman into the embedded Git for Windows if it is not already present.
 .EXAMPLE
     .\build.ps1
 
@@ -21,13 +37,29 @@
 
     Skip all downloads and only build launcher.
 .EXAMPLE
-    .\build -verbose
+    .\build.ps1 -Verbose
 
     Execute the build and see what's going on.
 .EXAMPLE
     .\build.ps1 -SourcesPath '~/custom/vendors.json'
 
     Build Cmder with your own packages. See vendor/sources.json for the syntax you need to copy.
+.EXAMPLE
+    .\build.ps1 -Terminal windows-terminal
+
+    Build only the Windows Terminal package and dependencies.
+.EXAMPLE
+    .\build.ps1 -Terminal conemu-maximus5
+
+    Build only the ConEmu package and dependencies.
+.EXAMPLE
+    .\build.ps1 -Terminal none -Compile
+
+    Compile the launcher without downloading any terminal packages.
+.EXAMPLE
+    .\build.ps1 -InstallPacman
+
+    Install pacman into the embedded Git for Windows during the build.
 .NOTES
     AUTHORS
     Samuel Vasko, Jack Bennett

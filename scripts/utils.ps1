@@ -105,6 +105,7 @@ function Get-VersionStr {
 
         if ( $GitPresent -eq 'true' ) {
             $string = Invoke-Expression "git describe --abbrev=0 --tags"
+            write-Verbose "Version string from git describe: $string"
         }
     }
 
@@ -124,6 +125,8 @@ function Get-VersionStr {
     # Remove starting 'v' characters
     $string = $string -replace '^v+','' # normalize version string
 
+    write-Verbose "Determined version string: $string"
+
     return $string
 }
 
@@ -133,6 +136,8 @@ function Parse-Changelog($file) {
 
     # Find the first match of the version string which means the latest version
     $version = Select-String -Path $file -Pattern $regex | Select-Object -First 1 | ForEach-Object { $_.Matches.Groups[1].Value }
+
+    write-Verbose "Parsed version string from changelog: $version"
 
     return $version
 }
