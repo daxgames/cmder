@@ -124,7 +124,7 @@ jobs:
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "| Artifact | Size | Hash (SHA256) |" >> $env:GITHUB_STEP_SUMMARY
         echo "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
-        $artifacts = @("cmder.zip", "cmder.7z", "cmder_mini.zip")
+        $artifacts = @("cmder_win.zip", "cmder_win.7z", "cmder_win_mini.zip", "cmder_wt.zip", "cmder_wt.7z", "cmder_wt_mini.zip")
         foreach ($artifact in $artifacts) {
           $path = "build/$artifact"
           if (Test-Path $path) {
@@ -135,25 +135,6 @@ jobs:
           }
         }
         echo "" >> $env:GITHUB_STEP_SUMMARY
-
-    - name: Upload artifact (cmder.zip)
-      uses: actions/upload-artifact@v6
-      with:
-        path: build/cmder.zip
-        name: cmder.zip
-        if-no-files-found: error
-
-    - name: Upload artifact (cmder.7z)
-      uses: actions/upload-artifact@v6
-      with:
-        path: build/cmder.7z
-        name: cmder.7z
-
-    - name: Upload artifact (cmder_mini.zip)
-      uses: actions/upload-artifact@v6
-      with:
-        path: build/cmder_mini.zip
-        name: cmder_mini.zip
 
     - name: Upload artifact (hashes.txt)
       uses: actions/upload-artifact@v6
@@ -168,9 +149,12 @@ jobs:
         echo "### ☁️ Upload Status" >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "All artifacts successfully uploaded to GitHub Actions:" >> $env:GITHUB_STEP_SUMMARY
-        echo "- ✅ \`cmder.zip\`" >> $env:GITHUB_STEP_SUMMARY
-        echo "- ✅ \`cmder.7z\`" >> $env:GITHUB_STEP_SUMMARY
-        echo "- ✅ \`cmder_mini.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_win.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_win.7z\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_win_mini.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_wt.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_wt.7z\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_wt_mini.zip\`" >> $env:GITHUB_STEP_SUMMARY
         echo "- ✅ \`hashes.txt\`" >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
 
@@ -178,11 +162,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          build/cmder.zip
+          build/cmder_win.zip
+          build/cmder_win.7z
+          build/cmder_win_mini.zip
           build/cmder_wt.zip
-          build/cmder.7z
           build/cmder_wt.7z
-          build/cmder_mini.zip
           build/cmder_wt_mini.zip
           build/hashes.txt
         draft: true
