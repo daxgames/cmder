@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.4.0 - Unreleased
+## [2.0.0](https://github.com/cmderdev/cmder/tree/v2.0.0) (Unreleased)
 
 > [!IMPORTANT]
 > Pre-built packages that include Conemu are no longer included.
