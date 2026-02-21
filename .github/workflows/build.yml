@@ -124,7 +124,12 @@ jobs:
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "| Artifact | Size | Hash (SHA256) |" >> $env:GITHUB_STEP_SUMMARY
         echo "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
-        $artifacts = @("cmder_win.zip", "cmder_win.7z", "cmder_win_mini.zip", "cmder_wt.zip", "cmder_wt.7z", "cmder_wt_mini.zip")
+        $artifacts = @("cmder_win.zip",
+	               "cmder_win.7z",
+		       "cmder_win_mini.zip",
+		       "cmder_wt.zip",
+		       "cmder_wt.7z",
+		       "cmder_wt_mini.zip")
         foreach ($artifact in $artifacts) {
           $path = "build/$artifact"
           if (Test-Path $path) {
