@@ -6,14 +6,36 @@
 
     You will need to make this script executable by setting your Powershell Execution Policy to Remote signed
     Then unblock the script for execution with UnblockFile .\pack.ps1
+.PARAMETER cmderRoot
+    Path to the Cmder root folder to package. Defaults to the repo root.
+.PARAMETER terminal
+    Select which terminal packages to include: `none`, `all`, `conemu-maximus5`, or `windows-terminal`.
+.PARAMETER saveTo
+    Path to the output build folder where archives and `hashes.txt` are written.
 .EXAMPLE
     .\pack.ps1
 
     Creates default archives for Cmder
 .EXAMPLE
-    .\pack.ps1 -verbose
+    .\pack.ps1 -Verbose
 
     Creates default archives for Cmder with plenty of information
+.EXAMPLE
+    .\pack.ps1 -Terminal windows-terminal
+
+    Creates only Windows Terminal archives (cmder_wt* and cmder_win*).
+.EXAMPLE
+    .\pack.ps1 -Terminal conemu-maximus5
+
+    Creates only ConEmu archives (cmder* and cmder_win*).
+.EXAMPLE
+    .\pack.ps1 -Terminal none
+
+    Creates only Cmder for Windows archives (cmder_win*).
+.EXAMPLE
+    .\pack.ps1 -SaveTo .\artifacts
+
+    Writes archives and `hashes.txt` to the specified output folder.
 .NOTES
     AUTHORS
     Samuel Vasko, Jack Bennett, Martin Kemp
@@ -52,12 +74,18 @@ if ($terminal -eq "none") {
     }
 } elseif ($terminal -eq "windows-terminal") {
     $targets = @{
+      "cmder_win.7z"       = "-t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -myx=7 -mqs=on -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
+      "cmder_win.zip"      = "-mm=Deflate -mfb=128 -mpass=3 -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
+      "cmder_win_mini.zip" = "-xr!`"vendor\git-for-windows`" -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
       "cmder_wt.7z"       = "-t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -myx=7 -mqs=on -xr!`"vendor\conemu-maximus5`"";
       "cmder_wt.zip"      = "-mm=Deflate -mfb=128 -mpass=3 -xr!`"vendor\conemu-maximus5`"";
       "cmder_wt_mini.zip" = "-xr!`"vendor\git-for-windows`" -xr!`"vendor\conemu-maximus5`"";
     }
-} elseif ($terminal -eq "windows-terminal") {
+} elseif ($terminal -eq "conemu-maximus5") {
     $targets = @{
+      "cmder_win.7z"       = "-t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -myx=7 -mqs=on -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
+      "cmder_win.zip"      = "-mm=Deflate -mfb=128 -mpass=3 -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
+      "cmder_win_mini.zip" = "-xr!`"vendor\git-for-windows`" -xr!`"vendor\conemu-maximus5`" -xr!`"vendor\windows-terminal`"";
       "cmder.7z"       = "-t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -myx=7 -mqs=on -xr!`"vendor\windows-terminal`"";
       "cmder.zip"      = "-mm=Deflate -mfb=128 -mpass=3 -xr!`"vendor\windows-terminal`"";
       "cmder_mini.zip" = "-xr!`"vendor\git-for-windows`" -xr!`"vendor\windows-terminal`"";

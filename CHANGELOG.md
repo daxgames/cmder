@@ -1,8 +1,21 @@
 # Change Log
 
-## Unreleased
+## 1.4.0 - Unreleased
+
+> [!IMPORTANT]
+> Pre-built packages that include Conemu are no longer included.
+
+### Changes
+
+- Add Windows Terminal integration (defaults, packaging, and launch helpers).
+- Refresh vendored sources and defaults via `sources.json` updates.
+- Update build/pack scripts and GitHub Actions workflows.
 
 ### Fixes
+
+- Improve `lib_path.cmd` path enhancement handling.
+- Fix launcher overwrite/backup behavior for emulator settings.
+- Add `.git-blame-ignore-revs` entries for whitespace-only changes.
 
 - Fixes #2940
 
@@ -11,6 +24,60 @@
 - Cmder for Windows
     - Uses Windows and Git for Windows Native Terminals.
     - Does not contain a terminal emulator like ConEmu or Windows Terminal.
+- Add Pacman install support for build scripts.
+- Add Git Bash/Mintty launch helpers and user init template.
+- Add `create-cmdercfg.ps1` and `timer.cmd` helpers.
+
+## [1.3.25](https://github.com/cmderdev/cmder/tree/v1.3.25) (2024-05-31)
+
+### Changes
+
+- Update Git for Windows to 2.45.1.windows.1, Clink to 1.6.14, and clink-completions to 0.5.2.
+- Add `SECURITY.md` and refresh CI workflows and actions.
+- Enable `match.expand_envvars` and improve git diagnostics for improper versions.
+
+### Fixes
+
+- Fix #2944.
+- Fix script error when the working directory contains `%`.
+- Remove environment refresh race condition.
+
+## [1.3.24](https://github.com/cmderdev/cmder/tree/v1.3.24) (2023-07-24)
+
+### Changes
+
+- Update `build.yml` workflow.
+
+## [1.3.23](https://github.com/cmderdev/cmder/tree/v1.3.23) (2023-07-24)
+
+### Changes
+
+- Update ConEmu (conemu-maximus5) to 23.07.24.
+
+## [1.3.22](https://github.com/cmderdev/cmder/tree/v1.3.22) (2023-07-24)
+
+### Changes
+
+- Update Git for Windows to 2.41.0.windows.3, Clink to 1.5.1, ConEmu to 23.07.23, and clink-completions to 0.4.10.
+- Remove AppVeyor configuration and add CodeQL scanning and Dependabot updates.
+
+### Fixes
+
+- Fix `/task "<taskName>"` handling.
+- Skip clink injection when initialization fails fatally.
+- Fix errors when git/svn/hg are not installed and in profile.d PowerShell scripts.
+
+## [1.3.21](https://github.com/cmderdev/cmder/tree/v1.3.21) (2022-12-19)
+
+### Changes
+
+- Update ConEmu to mitigate CVE-2022-46387.
+- Update Git for Windows to 2.39.0.windows.1 and Clink to 1.4.4.
+
+### Fixes
+
+- Fix #2789.
+- Fix Git Bash `GIT_INSTALL_ROOT` handling.
 
 ## [1.3.20](https://github.com/cmderdev/cmder/tree/v1.3.20) (2022-03-18)
 
