@@ -60,7 +60,7 @@ jobs:
     - name: Build Cmder Launcher
       shell: pwsh
       working-directory: scripts
-      run: .\build.ps1 -Compile -verbose -terminal all -InstallPacman
+      run: .\build.ps1 -Compile -verbose -terminal windows-terminal -InstallPacman
 
     - name: Summary - Build completed
       if: success()
@@ -74,7 +74,7 @@ jobs:
     - name: Pack the built files
       shell: pwsh
       working-directory: scripts
-      run: .\pack.ps1 -verbose -terminal all
+      run: .\pack.ps1 -verbose -terminal windows-terminal
 
     - name: Upload artifact (cmder_win_mini.zip)
       uses: actions/upload-artifact@v4
