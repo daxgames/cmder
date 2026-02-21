@@ -3,8 +3,8 @@ name: Run Tests
 on:
   push:
     branches:
-      - master
-      - development
+      - main
+
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
@@ -12,8 +12,8 @@ on:
       - '**/.gitignore'
   pull_request:
     branches:
-      - master
-      - development
+      - main
+
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
