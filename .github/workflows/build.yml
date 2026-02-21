@@ -137,7 +137,7 @@ jobs:
         echo "" >> $env:GITHUB_STEP_SUMMARY
 
     - name: Upload artifact (hashes.txt)
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v4
       with:
         path: build/hashes.txt
         name: hashes.txt
