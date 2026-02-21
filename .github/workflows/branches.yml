@@ -4,14 +4,14 @@ name: Update branches
 on:
   # Triggers the workflow on push events for the development branch
   push:
-    branches: [ master ]
+    branches: [ main ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This job updates the development branch with the master branch
+  # This job updates the development branch with the main branch
   update-development:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -19,15 +19,42 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # fetch all history for all branches and tags
 
+      - name: Summary - Merge operation started
+        shell: bash
+        run: |
+          echo "## 🔀 Update Branches - Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Merge Operation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Branch | \`main\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target Branch | \`development\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
       # Runs a single command using the runners shell
-      - name: Merge master into development
+      - name: Merge main into development
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git checkout development
-          git merge --no-ff master
+          git merge --no-ff main
           git push origin development
+
+      - name: Summary - Merge completed
+        if: success()
+        shell: bash
+        run: |
+          echo "### ✅ Merge Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The \`main\` branch has been successfully merged into \`development\`." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Merge type:** No fast-forward merge" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> The development branch is now synchronized with the latest changes from main." >> $GITHUB_STEP_SUMMARY

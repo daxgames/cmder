@@ -7,11 +7,11 @@ name: Build Cmder
 # Controls when the action will run. Triggers the workflow on push or pull request events but only for the main branch
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     tags:
       - "v*"
   pull_request:
-    branches: [ "master", "development" ]
+    branches: [ "main" ]
 
 #---------------------------------#
 #    environment configuration    #
@@ -35,9 +35,24 @@ jobs:
       discussions: write
     steps:
     - name: Check out repository code (Action from GitHub)
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
+
+    - name: Summary - Repository checkout
+      shell: pwsh
+      run: |
+        echo "## 📦 Build Cmder - Workflow Summary" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "### Repository Information" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Repository | \`${{ github.repository }}\` |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Branch | \`${{ github.ref_name }}\` |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Commit | \`${{ github.sha }}\` |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Actor | @${{ github.actor }} |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Workflow | \`${{ github.workflow }}\` |" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
@@ -45,7 +60,16 @@ jobs:
     - name: Build Cmder Launcher
       shell: pwsh
       working-directory: scripts
-      run: .\build.ps1 -Compile -verbose -terminal all
+      run: .\build.ps1 -Compile -verbose -terminal all -InstallPacman
+
+    - name: Summary - Build completed
+      if: success()
+      shell: pwsh
+      run: |
+        echo "### ✅ Build Status" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "Cmder launcher successfully compiled." >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
 
     - name: Pack the built files
       shell: pwsh
@@ -92,30 +116,63 @@ jobs:
         path: build/cmder_wt_mini.zip
         name: cmder_wt_mini.zip
 
+    - name: Summary - Package artifacts
+      if: success()
+      shell: pwsh
+      run: |
+        echo "### 📦 Artifacts Created" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "| Artifact | Size | Hash (SHA256) |" >> $env:GITHUB_STEP_SUMMARY
+        echo "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+        $artifacts = @("cmder.zip", "cmder.7z", "cmder_mini.zip")
+        foreach ($artifact in $artifacts) {
+          $path = "build/$artifact"
+          if (Test-Path $path) {
+            $size = (Get-Item $path).Length / 1MB
+            # Truncate hash to first 16 chars for summary readability (full hash in hashes.txt)
+            $hash = (Get-FileHash $path -Algorithm SHA256).Hash.Substring(0, 16)
+            echo "| \`$artifact\` | $([math]::Round($size, 2)) MB | \`$hash...\` |" >> $env:GITHUB_STEP_SUMMARY
+          }
+        }
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+
     - name: Upload artifact (cmder.zip)
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         path: build/cmder.zip
         name: cmder.zip
         if-no-files-found: error
 
     - name: Upload artifact (cmder.7z)
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         path: build/cmder.7z
         name: cmder.7z
 
     - name: Upload artifact (cmder_mini.zip)
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         path: build/cmder_mini.zip
         name: cmder_mini.zip
 
     - name: Upload artifact (hashes.txt)
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         path: build/hashes.txt
         name: hashes.txt
+
+    - name: Summary - Artifacts uploaded
+      if: success()
+      shell: pwsh
+      run: |
+        echo "### ☁️ Upload Status" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "All artifacts successfully uploaded to GitHub Actions:" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder.7z\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`cmder_mini.zip\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "- ✅ \`hashes.txt\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
@@ -131,3 +188,18 @@ jobs:
         draft: true
         generate_release_notes: true
       if: startsWith(github.ref, 'refs/tags/')
+
+    - name: Summary - Release created
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: pwsh
+      run: |
+        echo "### 🚀 Release Information" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "Draft release created for tag: **\`${{ github.ref_name }}\`**" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "Release includes:" >> $env:GITHUB_STEP_SUMMARY
+        echo "- Full version (\`cmder.zip\`, \`cmder.7z\`)" >> $env:GITHUB_STEP_SUMMARY
+        echo "- Mini version (\`cmder_mini.zip\`)" >> $env:GITHUB_STEP_SUMMARY
+        echo "- File hashes (\`hashes.txt\`)" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "> ⚠️ Release is in **draft** mode. Please review and publish manually." >> $env:GITHUB_STEP_SUMMARY
