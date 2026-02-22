@@ -94,12 +94,12 @@ jobs:
       if: env.COUNT_UPDATED > 0
       shell: pwsh
       run: |
-        echo "### 🎉 Pull Request Created" >> $env:GITHUB_STEP_SUMMARY
-        echo "" >> $env:GITHUB_STEP_SUMMARY
-        echo "A pull request has been created to update the vendor dependencies." >> $env:GITHUB_STEP_SUMMARY
-        echo "" >> $env:GITHUB_STEP_SUMMARY
-        echo "**Branch:** ``update-vendor``" >> $env:GITHUB_STEP_SUMMARY
-        echo "" >> $env:GITHUB_STEP_SUMMARY
-        echo "**Updated dependencies:** $env:LIST_UPDATED" >> $env:GITHUB_STEP_SUMMARY
-        echo "" >> $env:GITHUB_STEP_SUMMARY
-        echo "> Please review and merge the pull request to apply the updates." >> $env:GITHUB_STEP_SUMMARY
+        echo '### 🎉 Pull Request Created' >> $env:GITHUB_STEP_SUMMARY
+        echo '' >> $env:GITHUB_STEP_SUMMARY
+        echo 'A pull request has been created to update the vendor dependencies.' >> $env:GITHUB_STEP_SUMMARY
+        echo '' >> $env:GITHUB_STEP_SUMMARY
+        echo '**Branch:** `update-vendor`' >> $env:GITHUB_STEP_SUMMARY
+        echo '' >> $env:GITHUB_STEP_SUMMARY
+        echo "**Updated dependencies:** '$env:LIST_UPDATED'" >> $env:GITHUB_STEP_SUMMARY
+        echo '' >> $env:GITHUB_STEP_SUMMARY
+        echo '> Please review and merge the pull request to apply the updates.' >> $env:GITHUB_STEP_SUMMARY
