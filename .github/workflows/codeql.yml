@@ -50,17 +50,20 @@ jobs:
     - name: Summary - CodeQL analysis started
       shell: pwsh
       run: |
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## 🔒 CodeQL Security Analysis - Workflow Summary'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '### Analysis Configuration'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Property | Value |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| --- | --- |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Repository | `${{ github.repository }}` |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Branch | `${{ github.ref_name }}` |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Language | `${{ matrix.language }}` |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Commit | `${{ github.sha }}` |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+        $summary = @(
+          '## 🔒 CodeQL Security Analysis - Workflow Summary'
+          ''
+          '### Analysis Configuration'
+          ''
+          '| Property | Value |'
+          '| --- | --- |'
+          '| Repository | `${{ github.repository }}` |'
+          '| Branch | `${{ github.ref_name }}` |'
+          '| Language | `${{ matrix.language }}` |'
+          '| Commit | `${{ github.sha }}` |'
+          ''
+        )
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -86,10 +89,13 @@ jobs:
       if: success()
       shell: pwsh
       run: |
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '### ✅ Build Completed'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'Cmder launcher built successfully for CodeQL analysis.'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+        $summary = @(
+          '### ✅ Build Completed'
+          ''
+          'Cmder launcher built successfully for CodeQL analysis.'
+          ''
+        )
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
@@ -100,10 +106,13 @@ jobs:
       if: success()
       shell: pwsh
       run: |
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '### 🔍 CodeQL Analysis Results'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '✅ CodeQL security analysis completed successfully.'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '**Language analyzed:** `${{ matrix.language }}`'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '> Check the Security tab for detailed findings and recommendations.'
+        $summary = @(
+          '### 🔍 CodeQL Analysis Results'
+          ''
+          '✅ CodeQL security analysis completed successfully.'
+          ''
+          '**Language analyzed:** `${{ matrix.language }}`'
+          ''
+          '> Check the Security tab for detailed findings and recommendations.'
+        )
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY
