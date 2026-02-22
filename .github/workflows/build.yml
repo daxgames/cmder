@@ -103,7 +103,7 @@ jobs:
     - name: Build Cmder Launcher
       shell: pwsh
       working-directory: scripts
-      run: .\build.ps1 -Compile -verbose
+      run: .\build.ps1 -Compile -verbose -InstallPacman
 
     - name: Summary - Build completed
       if: success()
