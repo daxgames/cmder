@@ -32,7 +32,12 @@
 
 ### Changes
 
-- Update Git for Windows to 2.45.1.windows.1, Clink to 1.6.14, and clink-completions to 0.5.2.
+- Component Updates
+    - Update Git for Windows to 2.45.1.windows.1.
+    - Update ConEmu to 24.05.31.
+    - Clink 1.6.14.
+    - clink-completions 0.5.2.
+
 - Add `SECURITY.md` and refresh CI workflows and actions.
 - Enable `match.expand_envvars` and improve git diagnostics for improper versions.
 
@@ -58,7 +63,22 @@
 
 ### Changes
 
-- Update Git for Windows to 2.41.0.windows.3, Clink to 1.5.1, ConEmu to 23.07.23, and clink-completions to 0.4.10.
+- Handle Clink injection differently in `init.bat`.
+- Changes to `clink_settings.lua.default`.
+    - Do not add commands to Clink Command Line History that begin with whitespace as a default.
+        - This can be changed to the old behavior by setting `history_ignore_space` to `0` in `config\clink_settings.lua`.
+    - `history.max_lines` is now defaults to `25000` instead of `10000`.
+        - This can be changed back to the old behavior by setting `history_max_lines` to `10000` in `config\clink_settings.lua`.
+    - `history.shared` now defaults to `False` instead of `True`.
+        - The previous default of `True` was causing issues with some users when using Cmder in multiple sessions.
+        - This can be changed back to the old behavior by setting `history_shared` to `1` in `config\clink_settings.lua`.
+
+- Component Updates
+    - Git for Windows to 2.41.0.windows.3
+    - Clink to 1.5.1
+    - ConEmu to 23.07.23
+    - clink-completions to 0.4.10
+
 - Remove AppVeyor configuration and add CodeQL scanning and Dependabot updates.
 
 ### Fixes
@@ -69,15 +89,23 @@
 
 ## [1.3.21](https://github.com/cmderdev/cmder/tree/v1.3.21) (2022-12-19)
 
-### Changes
-
-- Update ConEmu to mitigate CVE-2022-46387.
-- Update Git for Windows to 2.39.0.windows.1 and Clink to 1.4.4.
-
 ### Fixes
 
 - Fix #2789.
 - Fix Git Bash `GIT_INSTALL_ROOT` handling.
+
+### Changes
+
+- Refactor `clink.lua` to speed up the prompt.
+- Refactor and Cleanup `init.bat` and related scripts.
+- Refactor and Cleanup `profile.ps1` and related scripts.
+- Remove handling of `clink` and `tcc` incompatibility.
+- Update ConEmu to mitigate CVE-2022-46387.
+- Update Git for Windows to 2.39.0.windows.1 and Clink to 1.4.4.
+
+### Adds
+
+- Add `show_warning` function to `vendor\lib\lib_console.cmd` for showing warning messages in yellow.
 
 ## [1.3.20](https://github.com/cmderdev/cmder/tree/v1.3.20) (2022-03-18)
 
