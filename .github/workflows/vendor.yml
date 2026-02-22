@@ -98,7 +98,7 @@ jobs:
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "A pull request has been created to update the vendor dependencies." >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
-        echo "**Branch:** \`update-vendor\`" >> $env:GITHUB_STEP_SUMMARY
+        echo "**Branch:** `update-vendor`" >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "**Updated dependencies:** $env:LIST_UPDATED" >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
