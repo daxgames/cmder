@@ -162,17 +162,18 @@ jobs:
         $count = [int]$env:COUNT_UPDATED
 
         if ($count -eq 0) {
-          $summary = @'
+          $summary = @"
           ### ✅ No Updates Available
 
           All vendor dependencies are up to date! 🎉
-          '@
-                  } else {
-                    $word = if ($count -eq 1) { 'dependency' } else { 'dependencies' }
-                    $summary = @'
+
+          "@
+        } else {
+          $word = if ($count -eq 1) { 'dependency' } else { 'dependencies' }
+          $summary = @"
           ### 🔄 Updates Found
 
-          '@
+          "@
           $summary += '📦 **' + $env:SINGLE_DEP_NAME + '** updated from `' + $env:SINGLE_DEP_OLD_VERSION + '` to `' + $env:SINGLE_DEP_NEW_VERSION + '`' + [Environment]::NewLine + [Environment]::NewLine
           $summary += '📦 **' + $count + '** vendor ' + $word + ' updated:' + [Environment]::NewLine + [Environment]::NewLine
         }
