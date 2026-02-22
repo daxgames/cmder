@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-
+      - dev
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
@@ -13,7 +13,7 @@ on:
   pull_request:
     branches:
       - main
-
+      - dev
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
@@ -39,6 +39,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Summary - Test execution started
       shell: pwsh
@@ -46,10 +48,10 @@ jobs:
         # Get Cmder version
         . scripts/utils.ps1
         $cmderVersion = Get-VersionStr
-        
-        @"
+
+        $summary = @"
         ## ✅ Run Tests - Workflow Summary
-        
+
         ### Test Environment
         | Property | Value |
         | --- | --- |
@@ -60,8 +62,10 @@ jobs:
         | Cmder Version | **$cmderVersion** |
         | PowerShell Version | **$($PSVersionTable.PSVersion)** |
         | Event | ``${{ github.event_name }}`` |
-        
-        "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+        "@
+
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
     - name: Initialize vendors
       shell: pwsh
@@ -74,7 +78,7 @@ jobs:
       run: |
         # Get vendor versions from sources.json
         $vendorInfo = @()
-        $sources = Get-Content "sources.json" -Raw | ConvertFrom-Json
+        $sources = Get-Content "vendor\sources.json" -Raw | ConvertFrom-Json
         $vendorDirs = $sources.PSObject.Properties | ForEach-Object { $_.Name }
         foreach ($dir in $vendorDirs) {
           $versionFile = "vendor/$dir/.cmderver"
@@ -83,35 +87,37 @@ jobs:
             $vendorInfo += "- **$dir**: $($version.Trim())"
           }
         }
-        
+
         $summary = @"
         ### ⚙️ Vendor Initialization
-        
+
         ✅ Vendor dependencies initialized successfully.
-        
+
         **Vendor Versions:**
+        "@
+
         $(
           if ($vendorInfo.Count -eq 0) {
-            "_No vendor version information available._"
+            $summary += "_No vendor version information available._"
           } else {
-            $vendorInfo -join "`n"
+            $summary += $vendorInfo -join '`n'
           }
         )
-        
-        "@
-        
+
         $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
     - name: Summary - Test results table header
       if: success()
       shell: pwsh
       run: |
-        @"
+        $summary = @"
         ### 📋 Test Results
-        
+
         | Test | Status | Duration |
         | --- | --- | --- |
-        "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+        "@
+
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
     - name: Testing Clink Shell
       id: test-clink
@@ -148,14 +154,16 @@ jobs:
       if: success()
       shell: pwsh
       run: |
-        @"
-        
+        $summary = @"
+
         ### ✅ All Tests Completed
-        
+
         All shell environments tested successfully!
-        
+
         **Test Coverage:**
         - ✅ Clink shell environment (Windows cmd.exe with Clink)
         - ✅ PowerShell environment (with Cmder profile)
         - ✅ Bash environment (Git Bash integration)
-        "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+        "@
+
+        $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
