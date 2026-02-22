@@ -107,3 +107,4 @@ jobs:
         echo "**Language analyzed:** `${{ matrix.language }}`" >> $env:GITHUB_STEP_SUMMARY
         echo "" >> $env:GITHUB_STEP_SUMMARY
         echo "> Check the Security tab for detailed findings and recommendations." >> $env:GITHUB_STEP_SUMMARY
+
