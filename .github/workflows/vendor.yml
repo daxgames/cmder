@@ -35,7 +35,6 @@ jobs:
           ## 📦 Update Vendor - Workflow Summary
 
           🔍 Checking for vendor dependency updates...
-
         "@
 
         $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
@@ -176,7 +175,6 @@ jobs:
           📦 **$env:SINGLE_DEP_NAME** updated from ``$env:SINGLE_DEP_OLD_VERSION`` to ``$env:SINGLE_DEP_NEW_VERSION``
 
           📦 **$count** vendor $word updated:
-
           "@
         }
 
@@ -269,7 +267,6 @@ jobs:
           **Branch:** `update-vendor`
 
           $env:LIST_UPDATED -and "**Updated dependencies:** $env:LIST_UPDATED" -or "**Updated dependencies:**
-
         "@
 
         if ($env:HAS_BREAKING_CHANGES -eq 'True') {
@@ -280,7 +277,6 @@ jobs:
 
         $summary += @"
         > Please review and merge the pull request to apply the updates.
-
         "@
 
         $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
