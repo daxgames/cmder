@@ -11,7 +11,7 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This job updates the development branch with the main branch
+  # This job updates the development branch with the master branch
   update-development:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -32,19 +32,19 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| Source Branch | \`main\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Branch | \`master\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Target Branch | \`development\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
       # Runs a single command using the runners shell
-      - name: Merge main into development
+      - name: Merge master into development
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git checkout development
-          git merge --no-ff main
+          git merge --no-ff master
           git push origin development
 
       - name: Summary - Merge completed
@@ -53,8 +53,8 @@ jobs:
         run: |
           echo "### ✅ Merge Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The \`main\` branch has been successfully merged into \`development\`." >> $GITHUB_STEP_SUMMARY
+          echo "The \`master\` branch has been successfully merged into \`development\`." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Merge type:** No fast-forward merge" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> The development branch is now synchronized with the latest changes from main." >> $GITHUB_STEP_SUMMARY
+          echo "> The development branch is now synchronized with the latest changes from master." >> $GITHUB_STEP_SUMMARY
