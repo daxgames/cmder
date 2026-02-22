@@ -56,10 +56,10 @@ jobs:
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Property | Value |'
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| --- | --- |'
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Repository | `${{ github.repository }}` |"
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Branch | `${{ github.ref_name }}` |"
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Language | `${{ matrix.language }}` |"
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Commit | `${{ github.sha }}` |"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Repository | `${{ github.repository }}` |'
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Branch | `${{ github.ref_name }}` |'
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Language | `${{ matrix.language }}` |'
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Commit | `${{ github.sha }}` |'
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
 
     # Initializes the CodeQL tools for scanning.
@@ -104,6 +104,6 @@ jobs:
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '✅ CodeQL security analysis completed successfully.'
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Language analyzed:** `${{ matrix.language }}`"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '**Language analyzed:** `${{ matrix.language }}`'
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '> Check the Security tab for detailed findings and recommendations.'
