@@ -50,7 +50,7 @@ jobs:
 
           # Export count of updated packages (update.ps1 is expected to set $count)
           if (-not ($count)) { $count = 0 }
-          Add-Content -Path $env:GITHUB_ENV -Value ("COUNT_UPDATED=$count")
+          Set-GHVariable -Name COUNT_UPDATED -Value $count
 
           $newVersion = (Get-Content .\vendor\sources.json | ConvertFrom-Json)
           $listUpdated = ""
@@ -128,7 +128,7 @@ jobs:
 
           if ($count -eq 0) { return }
 
-          Add-Content -Path $env:GITHUB_ENV -Value ("LIST_UPDATED=" + $listUpdated.Trim(', '))
+          Set-GHVariable -Name LIST_UPDATED -Value $listUpdated.Trim(', ')
           # Set single dependency variables (they will only be used if COUNT_UPDATED is 1)
           # Use safe fallback values in case variables weren't set (shouldn't happen but prevents errors)
           if ([string]::IsNullOrEmpty($singleDepName) -and $count -eq 1) {
@@ -144,9 +144,9 @@ jobs:
             $singleDepNewVersion = ""
           }
 
-          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_NAME=" + $singleDepName)
-          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_OLD_VERSION=" + $singleDepOldVersion)
-          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_NEW_VERSION=" + $singleDepNewVersion)
+          Set-GHVariable -Name SINGLE_DEP_NAME -Value $singleDepName
+          Set-GHVariable -Name SINGLE_DEP_OLD_VERSION -Value $singleDepOldVersion
+          Set-GHVariable -Name SINGLE_DEP_NEW_VERSION -Value $singleDepNewVersion
 
           # Write multiline UPDATE_MESSAGE to GITHUB_ENV
           Add-Content -Path $env:GITHUB_ENV -Value "UPDATE_MESSAGE<<EOF"
