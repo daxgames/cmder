@@ -46,7 +46,11 @@ jobs:
       run: |
           $currentVersion = (Get-Content .\vendor\sources.json | ConvertFrom-Json)
           . .\scripts\update.ps1 -verbose
-          Set-GHVariable -Name COUNT_UPDATED -Value $count
+
+          # Export count of updated packages (update.ps1 is expected to set $count)
+          if (-not ($count)) { $count = 0 }
+          Add-Content -Path $env:GITHUB_ENV -Value ("COUNT_UPDATED=$count")
+
           $newVersion = (Get-Content .\vendor\sources.json | ConvertFrom-Json)
           $listUpdated = ""
           $updateMessage = "| Name | Old Version | New Version |`n| :--- | :---: | :---: |`n"
@@ -59,31 +63,24 @@ jobs:
             if ($s.version -ne $oldVersion) {
               $repoUrl = ($repoUrl = $s.Url.Replace("/archive/", "/releases/")).Substring(0, $repoUrl.IndexOf("/releases/")) + "/releases"
 
-              # Store single dependency info for messages (only if this is the only update)
               if ($count -eq 1) {
                 $singleDepName = $s.name
                 $singleDepOldVersion = $oldVersion
                 $singleDepNewVersion = $s.version
               }
 
-              # Determine change type and emoji
               $changeType = "unknown"
               $emoji = "🔄"
               $isMajor = $false
               try {
-                # Handle versions with more than 4 parts
                 $oldVerStr = $oldVersion.Split('-')[0]
                 $newVerStr = $s.version.Split('-')[0]
-
-                # Split by dots and take only numeric parts, first 4 max
                 $oldParts = $oldVerStr.Split('.') | Where-Object { $_ -match '^\d+$' } | Select-Object -First 4
                 $newParts = $newVerStr.Split('.') | Where-Object { $_ -match '^\d+$' } | Select-Object -First 4
 
-                # Ensure we have at least 2 parts (major.minor)
                 if ($oldParts.Count -ge 2 -and $newParts.Count -ge 2) {
                   $oldVerParseable = $oldParts -join '.'
                   $newVerParseable = $newParts -join '.'
-
                   $oldVer = [System.Version]::Parse($oldVerParseable)
                   $newVer = [System.Version]::Parse($newVerParseable)
 
@@ -104,7 +101,6 @@ jobs:
                 $emoji = "🔄"
               }
 
-              # Track major updates for changelog section
               if ($isMajor) {
                 $compareUrl = "$repoUrl/compare/v$oldVersion...v$($s.version)"
                 $majorUpdates += @{
@@ -120,28 +116,32 @@ jobs:
               $updateMessage += "| $emoji **[$($s.name)]($repoUrl)** | \`$oldVersion\` | **\`$($s.version)\`** |`n"
             }
           }
+
           if ($count -eq 0) { return }
-          Set-GHVariable -Name LIST_UPDATED -Value $listUpdated.Trim(', ')
-          # Set single dependency variables (they will only be used if COUNT_UPDATED is 1)
-          # Use safe fallback values in case variables weren't set (shouldn't happen but prevents errors)
+
+          Add-Content -Path $env:GITHUB_ENV -Value ("LIST_UPDATED=" + $listUpdated.Trim(', '))
+
           if ([string]::IsNullOrEmpty($singleDepName) -and $count -eq 1) {
-            # This shouldn't happen, but if it does, log a warning
             Write-Warning "Single dependency name not set despite count being 1"
             $singleDepName = "unknown-package"
             $singleDepOldVersion = "unknown"
             $singleDepNewVersion = "unknown"
           } elseif ([string]::IsNullOrEmpty($singleDepName)) {
-            # For multiple dependencies, set placeholder values (won't be used)
             $singleDepName = ""
             $singleDepOldVersion = ""
             $singleDepNewVersion = ""
           }
-          Set-GHVariable -Name SINGLE_DEP_NAME -Value $singleDepName
-          Set-GHVariable -Name SINGLE_DEP_OLD_VERSION -Value $singleDepOldVersion
-          Set-GHVariable -Name SINGLE_DEP_NEW_VERSION -Value $singleDepNewVersion
-          echo "UPDATE_MESSAGE<<<EOF`n$updateMessage`n<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          # Generate major updates changelog section
+          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_NAME=" + $singleDepName)
+          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_OLD_VERSION=" + $singleDepOldVersion)
+          Add-Content -Path $env:GITHUB_ENV -Value ("SINGLE_DEP_NEW_VERSION=" + $singleDepNewVersion)
+
+          # Write multiline UPDATE_MESSAGE to GITHUB_ENV
+          Add-Content -Path $env:GITHUB_ENV -Value "UPDATE_MESSAGE<<EOF"
+          Add-Content -Path $env:GITHUB_ENV -Value $updateMessage
+          Add-Content -Path $env:GITHUB_ENV -Value "EOF"
+
+          # Generate major updates changelog section and export
           if ($majorUpdates.Count -gt 0) {
             $changelogSection = "`n<details>`n<summary>🔥 Major version updates - View changelog</summary>`n`n"
             foreach ($update in $majorUpdates) {
@@ -151,9 +151,14 @@ jobs:
               $changelogSection += "- [Release notes]($($update.repoUrl)/tag/v$($update.newVersion))`n`n"
             }
             $changelogSection += "</details>`n"
-            echo "CHANGELOG_SECTION<<<EOF`n$changelogSection`n<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+            Add-Content -Path $env:GITHUB_ENV -Value "CHANGELOG_SECTION<<EOF"
+            Add-Content -Path $env:GITHUB_ENV -Value $changelogSection
+            Add-Content -Path $env:GITHUB_ENV -Value "EOF"
+            Add-Content -Path $env:GITHUB_ENV -Value "HAS_BREAKING_CHANGES=True"
           } else {
-            echo "CHANGELOG_SECTION=" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Add-Content -Path $env:GITHUB_ENV -Value "CHANGELOG_SECTION="
+            Add-Content -Path $env:GITHUB_ENV -Value "HAS_BREAKING_CHANGES=False"
           }
 
     - name: Summary - Update check results
