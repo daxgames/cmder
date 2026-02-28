@@ -37,6 +37,7 @@ jobs:
           '🔍 Checking for vendor dependency updates...'
           ''
         )
+
         $summary | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
     - id: make-changes
@@ -63,24 +64,31 @@ jobs:
             if ($s.version -ne $oldVersion) {
               $repoUrl = ($repoUrl = $s.Url.Replace("/archive/", "/releases/")).Substring(0, $repoUrl.IndexOf("/releases/")) + "/releases"
 
+              # Store single dependency info for messages (only if this is the only update)
               if ($count -eq 1) {
                 $singleDepName = $s.name
                 $singleDepOldVersion = $oldVersion
                 $singleDepNewVersion = $s.version
               }
 
+              # Determine change type and emoji
               $changeType = "unknown"
               $emoji = "🔄"
               $isMajor = $false
               try {
+                # Handle versions with more than 4 parts
                 $oldVerStr = $oldVersion.Split('-')[0]
                 $newVerStr = $s.version.Split('-')[0]
+
+                # Split by dots and take only numeric parts, first 4 max
                 $oldParts = $oldVerStr.Split('.') | Where-Object { $_ -match '^\d+$' } | Select-Object -First 4
                 $newParts = $newVerStr.Split('.') | Where-Object { $_ -match '^\d+$' } | Select-Object -First 4
 
+                # Ensure we have at least 2 parts (major.minor)
                 if ($oldParts.Count -ge 2 -and $newParts.Count -ge 2) {
                   $oldVerParseable = $oldParts -join '.'
                   $newVerParseable = $newParts -join '.'
+
                   $oldVer = [System.Version]::Parse($oldVerParseable)
                   $newVer = [System.Version]::Parse($newVerParseable)
 
@@ -101,6 +109,7 @@ jobs:
                 $emoji = "🔄"
               }
 
+              # Track major updates for changelog section
               if ($isMajor) {
                 $compareUrl = "$repoUrl/compare/v$oldVersion...v$($s.version)"
                 $majorUpdates += @{
@@ -120,13 +129,16 @@ jobs:
           if ($count -eq 0) { return }
 
           Add-Content -Path $env:GITHUB_ENV -Value ("LIST_UPDATED=" + $listUpdated.Trim(', '))
-
+          # Set single dependency variables (they will only be used if COUNT_UPDATED is 1)
+          # Use safe fallback values in case variables weren't set (shouldn't happen but prevents errors)
           if ([string]::IsNullOrEmpty($singleDepName) -and $count -eq 1) {
+            # This shouldn't happen, but if it does, log a warning
             Write-Warning "Single dependency name not set despite count being 1"
             $singleDepName = "unknown-package"
             $singleDepOldVersion = "unknown"
             $singleDepNewVersion = "unknown"
           } elseif ([string]::IsNullOrEmpty($singleDepName)) {
+            # For multiple dependencies, set placeholder values (won't be used)
             $singleDepName = ""
             $singleDepOldVersion = ""
             $singleDepNewVersion = ""
