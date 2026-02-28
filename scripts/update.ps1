@@ -5,19 +5,27 @@
     This script updates dependencies to the latest version in vendor/sources.json file.
 
     You will need to make this script executable by setting your Powershell Execution Policy to Remote signed
-    Then unblock the script for execution with UnblockFile .\build.ps1
+    Then unblock the script for execution with UnblockFile .\update.ps1
+.PARAMETER sourcesPath
+    Path to the vendor sources JSON file to update. Defaults to `vendor\sources.json`.
+.PARAMETER IncludePrerelease
+    Include pre-release versions (RC, beta, alpha, preview, etc.). By default, only stable releases are considered.
 .EXAMPLE
-    .\build.ps1
+    .\update.ps1
 
     Updates the dependency sources in the default location, the vendor/sources.json file.
 .EXAMPLE
-    .\build -verbose
+    .\update.ps1 -Verbose
 
     Updates the dependency sources and see what's going on.
 .EXAMPLE
-    .\build.ps1 -SourcesPath '~/custom/vendors.json'
+    .\update.ps1 -SourcesPath '~/custom/vendors.json'
 
     Specify the path to update dependency sources file at.
+.EXAMPLE
+    .\update.ps1 -IncludePrerelease
+
+    Updates dependencies including pre-release versions.
 .NOTES
     AUTHORS
     David Refoua <David@Refoua.me>

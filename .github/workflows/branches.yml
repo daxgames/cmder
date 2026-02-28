@@ -2,7 +2,7 @@ name: Update branches
 
 # Controls when the action will run.
 on:
-  # Triggers the workflow on push events for the development branch
+  # Triggers the workflow on push events for the dev branch
   push:
     branches: [ master ]
 
@@ -11,8 +11,8 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This job updates the development branch with the master branch
-  update-development:
+  # This job updates the dev branch with the master branch
+  update-dev:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -33,19 +33,19 @@ jobs:
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Source Branch | \`master\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Target Branch | \`development\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target Branch | \`dev\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
       # Runs a single command using the runners shell
-      - name: Merge master into development
+      - name: Merge master into dev
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git checkout development
+          git checkout dev
           git merge --no-ff master
-          git push origin development
+          git push origin dev
 
       - name: Summary - Merge completed
         if: success()
@@ -53,8 +53,8 @@ jobs:
         run: |
           echo "### ✅ Merge Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The \`master\` branch has been successfully merged into \`development\`." >> $GITHUB_STEP_SUMMARY
+          echo "The \`master\` branch has been successfully merged into \`dev\`." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Merge type:** No fast-forward merge" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> The development branch is now synchronized with the latest changes from master." >> $GITHUB_STEP_SUMMARY
+          echo "> The dev branch is now synchronized with the latest changes from master." >> $GITHUB_STEP_SUMMARY

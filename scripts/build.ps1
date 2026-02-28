@@ -8,6 +8,22 @@
 
     You will need to make this script executable by setting your Powershell Execution Policy to Remote signed
     Then unblock the script for execution with UnblockFile .\build.ps1
+.PARAMETER sourcesPath
+    Path to the vendor sources JSON file. Defaults to `vendor\sources.json`.
+.PARAMETER saveTo
+    Path to the vendor folder where downloads are extracted.
+.PARAMETER launcher
+    Path to the launcher project folder used when `-Compile` is set.
+.PARAMETER config
+    Path to the config folder where user settings are backed up and restored.
+.PARAMETER noVendor
+    Skip all vendor downloads and extraction. Useful when only building the launcher.
+.PARAMETER terminal
+    Select which terminal packages to include: `none`, `all`, `conemu-maximus5`, or `windows-terminal`.
+.PARAMETER Compile
+    Build the Cmder launcher using MSBuild. Requires C++ build tools.
+.PARAMETER InstallPacman
+    Install pacman into the embedded Git for Windows if it is not already present.
 .EXAMPLE
     .\build.ps1
 
@@ -21,13 +37,29 @@
 
     Skip all downloads and only build launcher.
 .EXAMPLE
-    .\build -verbose
+    .\build.ps1 -Verbose
 
     Execute the build and see what's going on.
 .EXAMPLE
     .\build.ps1 -SourcesPath '~/custom/vendors.json'
 
     Build Cmder with your own packages. See vendor/sources.json for the syntax you need to copy.
+.EXAMPLE
+    .\build.ps1 -Terminal windows-terminal
+
+    Build only the Windows Terminal package and dependencies.
+.EXAMPLE
+    .\build.ps1 -Terminal conemu-maximus5
+
+    Build only the ConEmu package and dependencies.
+.EXAMPLE
+    .\build.ps1 -Terminal none -Compile
+
+    Compile the launcher without downloading any terminal packages.
+.EXAMPLE
+    .\build.ps1 -InstallPacman
+
+    Install pacman into the embedded Git for Windows during the build.
 .NOTES
     AUTHORS
     Samuel Vasko, Jack Bennett
@@ -56,11 +88,17 @@ Param(
     # Using this option will skip all downloads, if you only need to build launcher
     [switch]$noVendor,
 
+    # Using this option will specify the emulator to use [none, all, conemu-maximus5, or windows-terminal]
+    [string]$terminal = 'all',
+
     # Build launcher if you have MSBuild tools installed
-    [switch]$Compile
+    [switch]$Compile,
+
+    # Install pacman if not present
+    [switch]$InstallPacman
 )
 
-# Get the scripts and Cmder root dirs we are building in.
+# Get the scripts and cmder root dirs we are building in.
 $cmder_root = Resolve-Path "$PSScriptRoot\.."
 
 # Dot source util functions into this scope
@@ -113,15 +151,36 @@ if (-not $noVendor) {
     }
     else { $ConEmuXml = "" }
 
+    # Preserve modified (by user) Windows Terminal setting file
+    if ($config -ne "") {
+        $WinTermSettingsJson = Join-Path $saveTo "windows-terminal\settings\settings.json"
+        if (Test-Path $WinTermSettingsJson -pathType leaf) {
+            $WinTermSettingsJsonSave = Join-Path $config "windows_terminal_settings.json"
+            Write-Verbose "Backup '$WinTermSettingsJson' to '$WinTermSettingsJsonSave'"
+            Copy-Item $WinTermSettingsJson $WinTermSettingsJsonSave
+        }
+        else { $WinTermSettingsJson = "" }
+    }
+    else { $WinTermSettingsJson = "" }
+
     # Kill ssh-agent.exe if it is running from the $env:cmder_root we are building
+    $cmder_folder = $cmder_root.toString()
     foreach ($ssh_agent in $(Get-Process ssh-agent -ErrorAction SilentlyContinue)) {
-        if ([string]$($ssh_agent.path) -Match [string]$cmder_root.replace('\', '\\')) {
+        if ([string]$($ssh_agent.path) -Match $cmder_folder.Replace('\', '\\')) {
             Write-Verbose $("Stopping " + $ssh_agent.path + "!")
             Stop-Process $ssh_agent.id
         }
     }
 
     foreach ($s in $sources) {
+        if ($terminal -eq "none") {
+            continue
+        } elseif ($s.name -eq "conemu-maximus5" -and $terminal -eq "windows-terminal") {
+            continue
+        } elseif ($s.name -eq "windows-terminal" -and $terminal -eq  "conemu-maximus5") {
+            continue
+        }
+
         Write-Verbose "Getting vendored $($s.name) $($s.version)..."
 
         # We do not care about the extensions/type of archive
@@ -131,6 +190,16 @@ if (-not $noVendor) {
 
         Download-File -Url $s.url -File $vend\$tempArchive -ErrorAction Stop
         Extract-Archive $tempArchive $s.name
+
+        # Make Embedded Windows Terminal Portable
+        if ($s.name -eq "windows-terminal") {
+            $windowTerminalFiles = resolve-path ($saveTo + "\" + $s.name + "\terminal*")
+            Move-Item -ErrorAction SilentlyContinue $windowTerminalFiles\* $s.name >$null
+            Remove-Item -ErrorAction SilentlyContinue $windowTerminalFiles >$null
+            Write-Verbose "Making Windows Terminal Portable..."
+            New-Item -Type Directory -Path (Join-Path $saveTo "/windows-terminal/settings") -ErrorAction SilentlyContinue >$null
+            New-Item -Type File -Path (Join-Path $saveTo "/windows-terminal/.portable") -ErrorAction SilentlyContinue >$null
+        }
 
         if ((Get-ChildItem $s.name).Count -eq 1) {
             Flatten-Directory($s.name)
@@ -146,6 +215,12 @@ if (-not $noVendor) {
         Copy-Item $ConEmuXmlSave $ConEmuXml
     }
 
+    # Restore Windows Terminal user configuration
+    if ($WinTermSettingsJson -ne "") {
+        Write-Verbose "Restore '$WinTermSettingsJsonSave' to '$WinTermSettingsJson'"
+        Copy-Item $WinTermSettingsJsonSave $WinTermSettingsJson
+    }
+
     # Put vendor\cmder.sh in /etc/profile.d so it runs when we start bash or mintty
     if ( (Test-Path $($saveTo + "git-for-windows/etc/profile.d") ) ) {
         Write-Verbose "Adding cmder.sh /etc/profile.d"
@@ -159,6 +234,10 @@ if (-not $noVendor) {
         Copy-Item $($saveTo + "git-prompt.sh") $($saveTo + "git-for-windows/etc/profile.d/git-prompt.sh")
     }
 
+    if ( $InstallPacman -and !(Test-Path $($saveTo + "git-for-windows/usr/bin/pacman.exe") ) ) {
+        Write-Verbose "Installing pacman..."
+        & $($saveTo + "git-for-windows/bin/bash.exe") $($saveTo + "../scripts/install_pacman.sh")
+    }
     Pop-Location
 }
 

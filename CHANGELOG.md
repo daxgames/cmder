@@ -1,5 +1,33 @@
 # Change Log
 
+## [2.0.0-rc.1](https://github.com/cmderdev/cmder/tree/v2.0.0-rc.1) (2026-02-21)
+
+> [!IMPORTANT]
+> Pre-built packages that include Conemu are no longer included.
+
+### Changes
+
+- Add Windows Terminal integration (defaults, packaging, and launch helpers).
+- Refresh vendored sources and defaults via `sources.json` updates.
+- Update build/pack scripts and GitHub Actions workflows.
+
+### Fixes
+
+- Improve `lib_path.cmd` path enhancement handling.
+- Fix launcher overwrite/backup behavior for emulator settings.
+- Add `.git-blame-ignore-revs` entries for whitespace-only changes.
+
+- Fixes #2940
+
+### Adds
+
+- Cmder for Windows
+    - Uses Windows and Git for Windows Native Terminals.
+    - Does not contain a terminal emulator like ConEmu or Windows Terminal.
+- Add Pacman install support for build scripts.
+- Add Git Bash/Mintty launch helpers and user init template.
+- Add `create-cmdercfg.ps1` and `timer.cmd` helpers.
+
 ## [1.3.25](https://github.com/cmderdev/cmder/tree/v1.3.25) (2024-05-31)
 
 ### Changes
@@ -35,7 +63,7 @@
 
 ### Changes
 
-- Handle Clink injction differently in `init.bat`.
+- Handle Clink injection differently in `init.bat`.
 - Changes to `clink_settings.lua.default`.
     - Do not add commands to Clink Command Line History that begin with whitespace as a default.
         - This can be changed to the old behavior by setting `history_ignore_space` to `0` in `config\clink_settings.lua`.
