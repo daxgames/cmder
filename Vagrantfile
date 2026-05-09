@@ -1,7 +1,12 @@
 required_plugins = %w( vagrant-vbguest )
+restart_plugin = false
 required_plugins.each do |plugin|
   unless Vagrant.has_plugin? plugin
     system "vagrant plugin install #{plugin}"
+    restart_plugin = true
+  end
+
+  if restart_plugin
     p "Run 'vagrant up' again to continue."
     exit 0
   end
