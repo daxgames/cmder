@@ -16,7 +16,7 @@ body:
 
         - Searched for existing issues (including the **closed** ones) for similar feature requests here:
 
-          🗃 https://github.com/cmderdev/cmder/issues?q=is:issue
+          🗃 https://github.com/daxgames/cmder/issues?q=is:issue
 
         - If you are opening the feature request regarding any of the **upstream technologies** that are used by Cmder, please open the feature request at the corresponding upstream repos instead:
             - **[Clink](https://github.com/chrisant996/clink)**, the default shell in Cmder
@@ -28,7 +28,7 @@ body:
 
           You may already have an answer under the Guides or Questions section.
 
-          For a list of labels, visit **[🌐 Labels](https://github.com/cmderdev/cmder/labels)**.
+          For a list of labels, visit **[🌐 Labels](https://github.com/daxgames/cmder/labels)**.
 
           (Be sure to also check “Closed” issues in the labels section!)
 
