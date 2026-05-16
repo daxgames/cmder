@@ -7,11 +7,27 @@
     You will need to make this script executable by setting your Powershell Execution Policy to Remote signed
     Then unblock the script for execution with UnblockFile .\pack.ps1
 .PARAMETER cmderRoot
-    Path to the Cmder root folder to package. Defaults to the repo root.
+    Path to the Cmder repository root that should be packaged.
+
+    Defaults to the parent directory of this script.
 .PARAMETER terminal
-    Select which terminal packages to include: `none`, `all`, `conemu-maximus5`, or `windows-terminal`.
+    Select which terminal package set is included in generated archives:
+    - all: create all archive variants (default)
+    - none: exclude both ConEmu and Windows Terminal packages
+    - conemu-maximus5: include only ConEmu package
+    - windows-terminal: include only Windows Terminal package
 .PARAMETER saveTo
-    Path to the output build folder where archives and `hashes.txt` are written.
+    Output directory where archives and hashes.txt are written.
+
+    Defaults to the repository build directory.
+.PARAMETER Verbose
+    Built-in common parameter from CmdletBinding.
+
+    Prints detailed packaging progress and included files.
+.PARAMETER WhatIf
+    Built-in common parameter from CmdletBinding (SupportsShouldProcess).
+
+    Shows what actions would run without making changes.
 .EXAMPLE
     .\pack.ps1
 
@@ -21,21 +37,29 @@
 
     Creates default archives for Cmder with plenty of information
 .EXAMPLE
-    .\pack.ps1 -Terminal windows-terminal
+    .\pack.ps1 -Terminal none
 
-    Creates only Windows Terminal archives (cmder_wt* and cmder_win*).
+    Create archives without bundled terminal emulator packages.
 .EXAMPLE
     .\pack.ps1 -Terminal conemu-maximus5
 
-    Creates only ConEmu archives (cmder* and cmder_win*).
+    Create archives that include ConEmu and exclude Windows Terminal.
 .EXAMPLE
-    .\pack.ps1 -Terminal none
+    .\pack.ps1 -Terminal windows-terminal
 
-    Creates only Cmder for Windows archives (cmder_win*).
+    Create archives that include Windows Terminal and exclude ConEmu.
 .EXAMPLE
-    .\pack.ps1 -SaveTo .\artifacts
+    .\pack.ps1 -SaveTo 'C:\temp\cmder-artifacts'
 
-    Writes archives and `hashes.txt` to the specified output folder.
+    Write release archives and hashes.txt to a custom output directory.
+.EXAMPLE
+    .\pack.ps1 -CmderRoot 'C:\src\cmder'
+
+    Package a Cmder checkout from a custom repository path.
+.EXAMPLE
+    .\pack.ps1 -WhatIf
+
+    Preview packaging actions without creating or deleting files.
 .NOTES
     AUTHORS
     Samuel Vasko, Jack Bennett, Martin Kemp
@@ -127,7 +151,7 @@ if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
 foreach ($t in $targets.GetEnumerator()) {
     Create-Archive "$cmderRoot" "$saveTo\$($t.Name)" $t.Value
     $hash = (Digest-Hash "$saveTo\$($t.Name)")
-    Add-Content -path "$saveTo\hashes.txt" -value ($t.Name + ' ' + $hash)
+    Add-Content -path "$saveTo\hashes.txt" -value ($t.Name + "`t" + $hash)
 }
 
 Pop-Location
