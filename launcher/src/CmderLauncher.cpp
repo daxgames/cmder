@@ -2,6 +2,8 @@
 #include <tchar.h>
 #include <Shlwapi.h>
 #include "resource.h"
+#include <string>
+#include <utility>
 #include <vector>
 #include <shlobj.h>
 
