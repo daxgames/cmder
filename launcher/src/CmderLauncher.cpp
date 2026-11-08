@@ -94,6 +94,8 @@ typedef std::pair<std::wstring, std::wstring> optpair;
 bool GetModulePath(wchar_t * path, DWORD pathSize)
 {
 	const DWORD pathLength = GetModuleFileName(NULL, path, pathSize);
+	// GetModuleFileName returns pathSize when the buffer was too small.
+	// Treat that truncated result as a failure rather than using a partial path.
 	return pathLength != 0 && pathLength < pathSize;
 }
 
@@ -118,6 +120,7 @@ TerminalKind DetectTerminal(const wchar_t * exeDir)
 {
 	wchar_t terminalPath[MAX_PATH] = { 0 };
 
+	// Preserve Cmder's Windows Terminal-first preference when both emulators are bundled.
 	PathCombine(terminalPath, exeDir, L"vendor\\windows-terminal\\WindowsTerminal.exe");
 	if (PathFileExists(terminalPath))
 	{
@@ -142,6 +145,7 @@ void MigrateLegacyConfigFile(const wchar_t * configDir, const wchar_t * legacyNa
 
 	if (PathFileExists(legacyPath))
 	{
+		// MoveFile does not overwrite currentPath, preserving a file already migrated by the user.
 		MoveFile(legacyPath, currentPath);
 	}
 }
@@ -242,7 +246,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	}
 	else
 	{
-		// Yes - It was.
+		// Yes - cfgRoot is the `/c` root; Cmder configuration remains in its `config` child directory.
 		PathCombine(userBinDirPath, userConfigDirPath, L"bin");
 		SHCreateDirectoryEx(0, userBinDirPath, 0);
 
@@ -565,6 +569,8 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	{
 		if (isConEmu)
 		{
+			// ConEmu can load a settings file per launch. Prefer the most specific
+			// existing file, then fall back to the bundled configuration.
 			if (PathFileExists(cpuCfgPath))
 			{
 				wcscpy_s(selectedTerminalConfigPath, cpuCfgPath);
@@ -658,6 +664,8 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		return;
 	}
 
+	// CreateProcess returns handles even when Cmder does not need to wait for the child.
+	// Close them after launch so repeated invocations do not leak operating-system handles.
 	CloseHandle(pi.hThread);
 	CloseHandle(pi.hProcess);
 }
