@@ -808,7 +808,8 @@ cmderOptions GetOption()
 	{
 		if (!cmderOptions.error)
 		{
-			const bool hasValue = i + 1 < argCount && szArgList[i + 1][0] != '/';
+			// A value-taking option can consume the next argument only when it exists and is not another slash-prefixed launcher option.
+			const bool hasFollowingNonOptionArgument = i + 1 < argCount && szArgList[i + 1][0] != '/';
 
 			if (_wcsicmp(L"/c", szArgList[i]) == 0)
 			{
@@ -819,7 +820,7 @@ cmderOptions GetOption()
 
 				cmderOptions.cmderCfgRoot = cmderCfgRoot;
 
-				if (hasValue)
+				if (hasFollowingNonOptionArgument)
 				{
 					cmderOptions.cmderCfgRoot = szArgList[i + 1];
 					i++;
@@ -827,7 +828,7 @@ cmderOptions GetOption()
 			}
 			else if (_wcsicmp(L"/start", szArgList[i]) == 0)
 			{
-				if (!hasValue)
+				if (!hasFollowingNonOptionArgument)
 				{
 					cmderOptions.error = true;
 				}
@@ -843,7 +844,7 @@ cmderOptions GetOption()
 			}
 			else if (_wcsicmp(L"/task", szArgList[i]) == 0)
 			{
-				if (hasValue)
+				if (hasFollowingNonOptionArgument)
 				{
 					cmderOptions.cmderTask = szArgList[i + 1];
 					i++;
@@ -857,12 +858,12 @@ cmderOptions GetOption()
 			{
 				cmderOptions.cmderTask = szArgList[i];
 			}
-			else if (_wcsicmp(L"/title", szArgList[i]) == 0 && isConEmu && hasValue)
+			else if (_wcsicmp(L"/title", szArgList[i]) == 0 && isConEmu && hasFollowingNonOptionArgument)
 			{
 				cmderOptions.cmderTitle = szArgList[i + 1];
 				i++;
 			}
-			else if (_wcsicmp(L"/icon", szArgList[i]) == 0 && isConEmu && hasValue)
+			else if (_wcsicmp(L"/icon", szArgList[i]) == 0 && isConEmu && hasFollowingNonOptionArgument)
 			{
 				cmderOptions.cmderIcon = szArgList[i + 1];
 				i++;
@@ -879,7 +880,7 @@ cmderOptions GetOption()
 			{
 				cmderOptions.registerApp = true;
 				cmderOptions.unRegisterApp = false;
-				if (hasValue)
+				if (hasFollowingNonOptionArgument)
 				{
 					if (_wcsicmp(L"all", szArgList[i + 1]) == 0 || _wcsicmp(L"user", szArgList[i + 1]) == 0)
 					{
@@ -892,7 +893,7 @@ cmderOptions GetOption()
 			{
 				cmderOptions.unRegisterApp = true;
 				cmderOptions.registerApp = false;
-				if (hasValue)
+				if (hasFollowingNonOptionArgument)
 				{
 					if (_wcsicmp(L"all", szArgList[i + 1]) == 0 || _wcsicmp(L"user", szArgList[i + 1]) == 0)
 					{
@@ -902,7 +903,7 @@ cmderOptions GetOption()
 				}
 			}
 			// Pass a terminal-specific argument through to the selected emulator.
-			else if (_wcsicmp(L"/x", szArgList[i]) == 0 && hasValue)
+			else if (_wcsicmp(L"/x", szArgList[i]) == 0 && hasFollowingNonOptionArgument)
 			{
 				cmderOptions.cmderTerminalArgs = szArgList[i + 1];
 				i++;
