@@ -5,9 +5,6 @@
 #include <vector>
 #include <shlobj.h>
 
-#include <regex>
-#include <iostream>
-
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "comctl32.lib")
 #pragma warning( disable : 4091 )
@@ -92,17 +89,59 @@ typedef struct _option
 
 typedef std::pair<std::wstring, std::wstring> optpair;
 
-bool FileExists(const wchar_t * filePath)
+bool GetModulePath(wchar_t * path, DWORD pathSize)
 {
-	HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	const DWORD pathLength = GetModuleFileName(NULL, path, pathSize);
+	return pathLength != 0 && pathLength < pathSize;
+}
 
-	if (hFile != INVALID_HANDLE_VALUE)
+bool GetModuleDirectory(wchar_t * directory, DWORD directorySize)
+{
+	if (!GetModulePath(directory, directorySize))
 	{
-		CloseHandle(hFile);
-		return true;
+		return false;
 	}
 
-	return false;
+	return PathRemoveFileSpec(directory) != FALSE;
+}
+
+enum class TerminalKind
+{
+	WindowsTerminal,
+	ConEmu,
+	Console
+};
+
+TerminalKind DetectTerminal(const wchar_t * exeDir)
+{
+	wchar_t terminalPath[MAX_PATH] = { 0 };
+
+	PathCombine(terminalPath, exeDir, L"vendor\\windows-terminal\\WindowsTerminal.exe");
+	if (PathFileExists(terminalPath))
+	{
+		return TerminalKind::WindowsTerminal;
+	}
+
+	PathCombine(terminalPath, exeDir, L"vendor\\conemu-maximus5\\ConEmu64.exe");
+	if (PathFileExists(terminalPath))
+	{
+		return TerminalKind::ConEmu;
+	}
+
+	return TerminalKind::Console;
+}
+
+void MigrateLegacyConfigFile(const wchar_t * configDir, const wchar_t * legacyName, const wchar_t * currentName)
+{
+	wchar_t legacyPath[MAX_PATH] = { 0 };
+	wchar_t currentPath[MAX_PATH] = { 0 };
+	PathCombine(legacyPath, configDir, legacyName);
+	PathCombine(currentPath, configDir, currentName);
+
+	if (PathFileExists(legacyPath))
+	{
+		MoveFile(legacyPath, currentPath);
+	}
 }
 
 std::wstring NormalizeTaskName(std::wstring taskName)
@@ -125,7 +164,6 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	wchar_t exeDir[MAX_PATH] = { 0 };
 	wchar_t icoPath[MAX_PATH] = { 0 };
 	wchar_t cfgPath[MAX_PATH] = { 0 };
-	wchar_t backupCfgPath[MAX_PATH] = { 0 };
 	wchar_t cpuCfgPath[MAX_PATH] = { 0 };
 	wchar_t userCfgPath[MAX_PATH] = { 0 };
 	wchar_t defaultCfgPath[MAX_PATH] = { 0 };
@@ -134,12 +172,8 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	wchar_t userConfigDirPath[MAX_PATH] = { 0 };
 	wchar_t userBinDirPath[MAX_PATH] = { 0 };
 	wchar_t userProfiledDirPath[MAX_PATH] = { 0 };
-	wchar_t userProfilePath[MAX_PATH] = { 0 };
-	wchar_t legacyUserProfilePath[MAX_PATH] = { 0 };
-	wchar_t userAliasesPath[MAX_PATH] = { 0 };
-	wchar_t legacyUserAliasesPath[MAX_PATH] = { 0 };
 	wchar_t args[MAX_PATH * 2 + 256] = { 0 };
-	wchar_t userConEmuCfgPath[MAX_PATH] = { 0 };
+	wchar_t selectedTerminalConfigPath[MAX_PATH] = { 0 };
 	wchar_t windowsTerminalDir[MAX_PATH] = { 0 };
 	wchar_t conEmuDir[MAX_PATH] = { 0 };
 	wchar_t winDir[MAX_PATH] = { 0 };
@@ -153,7 +187,6 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	wchar_t x86Git[MAX_PATH] = { 0 };
 	wchar_t programFiles[MAX_PATH] = { 0 };
 	wchar_t programFilesX86[MAX_PATH] = { 0 };
-	wchar_t minTTYPath[MAX_PATH] = { 0 };
 
 	std::wstring cmderStart = path;
 	std::wstring cmderTask = taskName;
@@ -161,21 +194,31 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	std::wstring cmderTitle = title;
 	std::wstring cmderTerminalArgs = conemu_args;
 
-	std::copy(cfgRoot.begin(), cfgRoot.end(), userConfigDirPath);
-	userConfigDirPath[cfgRoot.length()] = 0;
+	if (cfgRoot.length() >= _countof(userConfigDirPath) || !GetModuleDirectory(exeDir, _countof(exeDir)))
+	{
+		MessageBox(NULL, L"Cmder or its user configuration path is too long.", MB_TITLE, MB_ICONSTOP);
+		return;
+	}
 
-	GetModuleFileName(NULL, exeDir, sizeof(exeDir));
+	wcscpy_s(userConfigDirPath, cfgRoot.c_str());
 
 	#if USE_TASKBAR_API
-		wcscpy_s(appId, exeDir);
+	if (!GetModulePath(appId, _countof(appId)))
+	{
+		MessageBox(NULL, L"Unable to determine the Cmder executable path.", MB_TITLE, MB_ICONSTOP);
+		return;
+	}
 	#endif
-
-	PathRemoveFileSpec(exeDir);
 
 	if (PathFileExists(iconPath.c_str()))
 	{
-		std::copy(iconPath.begin(), iconPath.end(), icoPath);
-		icoPath[iconPath.length()] = 0;
+		if (iconPath.length() >= _countof(icoPath))
+		{
+			MessageBox(NULL, L"The Cmder icon path is too long.", MB_TITLE, MB_ICONSTOP);
+			return;
+		}
+
+		wcscpy_s(icoPath, iconPath.c_str());
 	}
 	else
 	{
@@ -184,41 +227,8 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	PathCombine(configDirPath, exeDir, L"config");
 
-	/*
-	Convert legacy user-profile.cmd to new name user_profile.cmd
-	*/
-	PathCombine(legacyUserProfilePath, configDirPath, L"user-profile.cmd");
-	if (PathFileExists(legacyUserProfilePath))
-	{
-		PathCombine(userProfilePath, configDirPath, L"user_profile.cmd");
-
-		char* lPr = (char*)malloc(MAX_PATH);
-		char* pR = (char*)malloc(MAX_PATH);
-		size_t i;
-		wcstombs_s(&i, lPr, (size_t)MAX_PATH,
-			legacyUserProfilePath, (size_t)MAX_PATH);
-		wcstombs_s(&i, pR, (size_t)MAX_PATH,
-			userProfilePath, (size_t)MAX_PATH);
-		rename(lPr, pR);
-	}
-
-	/*
-	Convert legacy user-aliases.cmd to new name user_aliases.cmd
-	*/
-	PathCombine(legacyUserAliasesPath, configDirPath, L"user-aliases.cmd");
-	if (PathFileExists(legacyUserAliasesPath))
-	{
-		PathCombine(userAliasesPath, configDirPath, L"user_aliases.cmd");
-
-		char* lPr = (char*)malloc(MAX_PATH);
-		char* pR = (char*)malloc(MAX_PATH);
-		size_t i;
-		wcstombs_s(&i, lPr, (size_t)MAX_PATH,
-			legacyUserAliasesPath, (size_t)MAX_PATH);
-		wcstombs_s(&i, pR, (size_t)MAX_PATH,
-			userAliasesPath, (size_t)MAX_PATH);
-		rename(lPr, pR);
-	}
+	MigrateLegacyConfigFile(configDirPath, L"user-profile.cmd", L"user_profile.cmd");
+	MigrateLegacyConfigFile(configDirPath, L"user-aliases.cmd", L"user_aliases.cmd");
 
 	/*
 	Was /c [path] specified?
@@ -240,79 +250,49 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		PathCombine(userProfiledDirPath, userConfigDirPath, L"profile.d");
 		SHCreateDirectoryEx(0, userProfiledDirPath, 0);
 
-		/*
-		Convert legacy user-profile.cmd to new name user_profile.cmd
-		*/
-		PathCombine(legacyUserProfilePath, userConfigDirPath, L"user-profile.cmd");
-		if (PathFileExists(legacyUserProfilePath))
-		{
-			PathCombine(userProfilePath, userConfigDirPath, L"user_profile.cmd");
-
-			char* lPr = (char*)malloc(MAX_PATH);
-			char* pR = (char*)malloc(MAX_PATH);
-			size_t i;
-			wcstombs_s(&i, lPr, (size_t)MAX_PATH,
-				legacyUserProfilePath, (size_t)MAX_PATH);
-			wcstombs_s(&i, pR, (size_t)MAX_PATH,
-				userProfilePath, (size_t)MAX_PATH);
-			rename(lPr, pR);
-		}
-
-		/*
-		Convert legacy user-aliases.cmd to new name user_aliases.cmd
-		*/
-		PathCombine(legacyUserAliasesPath, userConfigDirPath, L"user-aliases.cmd");
-		if (PathFileExists(legacyUserAliasesPath))
-		{
-			PathCombine(userAliasesPath, userConfigDirPath, L"user_aliases.cmd");
-
-			char* lPr = (char*)malloc(MAX_PATH);
-			char* pR = (char*)malloc(MAX_PATH);
-			size_t i;
-			wcstombs_s(&i, lPr, (size_t)MAX_PATH,
-				legacyUserAliasesPath, (size_t)MAX_PATH);
-			wcstombs_s(&i, pR, (size_t)MAX_PATH,
-				userAliasesPath, (size_t)MAX_PATH);
-			rename(lPr, pR);
-		}
+		MigrateLegacyConfigFile(userConfigDirPath, L"user-profile.cmd", L"user_profile.cmd");
+		MigrateLegacyConfigFile(userConfigDirPath, L"user-aliases.cmd", L"user_aliases.cmd");
 	}
 
 	PathCombine(vendorDir, exeDir, L"vendor");
 	PathCombine(windowsTerminalDir, vendorDir, L"windows-terminal");
 	PathCombine(conEmuDir, vendorDir, L"conemu-maximus5");
 	GetEnvironmentVariable(L"WINDIR", winDir, MAX_PATH);
+	const TerminalKind terminal = DetectTerminal(exeDir);
+	const bool isWindowsTerminal = terminal == TerminalKind::WindowsTerminal;
+	const bool isConEmu = terminal == TerminalKind::ConEmu;
 	// Windows Terminal cannot select a settings file per launch, so `/c` roots
 	// must not enter the terminal settings copy or initialization flows below.
-	const bool useSharedWindowsTerminalSettings = PathFileExists(windowsTerminalDir) && cfgRoot.length() != 0;
+	const bool useSharedWindowsTerminalSettings = isWindowsTerminal && cfgRoot.length() != 0;
 
-	if (PathFileExists(windowsTerminalDir))
+	if (isWindowsTerminal)
 	{
-		// Set path to vendored ConEmu config file
+		// Set path to vendored Windows Terminal settings.
 		PathCombine(cfgPath, windowsTerminalDir, L"settings\\settings.json");
 
-		// Set path to Cmder default ConEmu config file
+		// Set path to Cmder default Windows Terminal settings.
 		PathCombine(defaultCfgPath, exeDir, L"vendor\\windows_terminal_default_settings.json");
 
 		// Check for machine-specific then user config source file.
 		PathCombine(cpuCfgPath, userConfigDirPath, L"windows_terminal_%COMPUTERNAME%_settings.json");
 		ExpandEnvironmentStrings(cpuCfgPath, cpuCfgPath, sizeof(cpuCfgPath) / sizeof(cpuCfgPath[0]));
 
-		// Set path to Cmder user ConEmu config file
+		// Set path to Cmder user Windows Terminal settings.
 		PathCombine(userCfgPath, userConfigDirPath, L"user_windows_terminal_settings.json");
 	}
-	else if (PathFileExists(conEmuDir))
+	else if (isConEmu)
 	{
-		// Set path to vendored ConEmu config file
+		// Set path to vendored ConEmu configuration.
 		PathCombine(cfgPath, conEmuDir, L"ConEmu.xml");
 
-		// Set path to Cmder default ConEmu config file
+		// Set path to Cmder default ConEmu configuration.
 		PathCombine(defaultCfgPath, exeDir, L"vendor\\ConEmu.xml.default");
 
 		// Check for machine-specific then user config source file.
 		PathCombine(cpuCfgPath, userConfigDirPath, L"ConEmu-%COMPUTERNAME%.xml");
 		ExpandEnvironmentStrings(cpuCfgPath, cpuCfgPath, sizeof(cpuCfgPath) / sizeof(cpuCfgPath[0]));
 
-		// Set path to Cmder user ConEmu config file
+		// Set path to Cmder user ConEmu configuration.
 		PathCombine(userCfgPath, userConfigDirPath, L"user-ConEmu.xml");
 	}
 
@@ -324,14 +304,14 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cfgPath, cpuCfgPath, FALSE))
 				{
-				if (PathFileExists(windowsTerminalDir)) {
+				if (isWindowsTerminal) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_%COMPUTERNAME%_settings.json! Access Denied."
 							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_%COMPUTERNAME%_settigns.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
-					else if (PathFileExists(conEmuDir))
+					else if (isConEmu)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -345,14 +325,14 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cpuCfgPath, cfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir)) {
+					if (isWindowsTerminal) {
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
 							? L"Failed to copy config/windows_terminal_%COMPUTERNAME%_settings.json file to vendor/windows-terminal/settings/settings.json! Access Denied."
 							: L"Failed to copy config/windows_terminal_%COMPUTERNAME%_settings.json file to vendor/windows-terminal/settings/settings.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
-					else if (PathFileExists(conEmuDir))
+					else if (isConEmu)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -372,7 +352,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(cfgPath, userCfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
+					if (isWindowsTerminal)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -380,7 +360,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 							: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/windows_terminal_settigns.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
-					else if (PathFileExists(conEmuDir))
+					else if (isConEmu)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -394,7 +374,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(userCfgPath, cfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
+					if (isWindowsTerminal)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -402,7 +382,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 							: L"Failed to copy config/user_windows_terminal_settings.json file to vendor/windows-terminal/settings/settings.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
-					else if (PathFileExists(conEmuDir))
+					else if (isConEmu)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -413,9 +393,6 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 				}
 			}
 		}
-		else if (!PathFileExists(windowsTerminalDir)) { // '/c [path]' was specified, don't copy anything and use existing user_[terminal emulator config] file.
-			PathCombine(userConEmuCfgPath, userConfigDirPath, L"user-ConEmu.xml");
-		}
 	}
 	else if (!useSharedWindowsTerminalSettings && cfgRoot.length() == 0) // Do not initialize user-root terminal settings for `/c` Windows Terminal launches.
 	{
@@ -423,7 +400,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		{
 			if (!CopyFile(cfgPath, userCfgPath, FALSE))
 			{
-				if (PathFileExists(windowsTerminalDir))
+				if (isWindowsTerminal)
 				{
 					MessageBox(NULL,
 						(GetLastError() == ERROR_ACCESS_DENIED)
@@ -431,7 +408,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 						: L"Failed to copy vendor/windows-terminal/settings/settings.json file to config/user_windows_terminal_settigns.json!", MB_TITLE, MB_ICONSTOP);
 					exit(1);
 				}
-				else if (PathFileExists(conEmuDir))
+				else if (isConEmu)
 				{
 					MessageBox(NULL,
 						(GetLastError() == ERROR_ACCESS_DENIED)
@@ -444,7 +421,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			{
 				if (!CopyFile(defaultCfgPath, cfgPath, FALSE))
 				{
-					if (PathFileExists(windowsTerminalDir))
+					if (isWindowsTerminal)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -452,7 +429,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 							: L"Failed to copy vendor/windows-terminal_default_settings_settings.json file to vendor/windows-terminal/settings/settigns.json!", MB_TITLE, MB_ICONSTOP);
 						exit(1);
 					}
-					else if (PathFileExists(conEmuDir))
+					else if (isConEmu)
 					{
 						MessageBox(NULL,
 							(GetLastError() == ERROR_ACCESS_DENIED)
@@ -463,7 +440,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 				}
 			}
 		}
-		else if (!CopyFile(defaultCfgPath, cfgPath, FALSE) && PathFileExists(conEmuDir))
+		else if (!CopyFile(defaultCfgPath, cfgPath, FALSE) && isConEmu)
 		{
 			MessageBox(NULL,
 				(GetLastError() == ERROR_ACCESS_DENIED)
@@ -476,7 +453,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	{
 		if (!CopyFile(cfgPath, userCfgPath, FALSE))
 		{
-			if (PathFileExists(windowsTerminalDir))
+			if (isWindowsTerminal)
 			{
 				MessageBox(NULL,
 					(GetLastError() == ERROR_ACCESS_DENIED)
@@ -494,13 +471,12 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 			}
 		}
 
-		PathCombine(userConEmuCfgPath, userConfigDirPath, L"user-ConEmu.xml");
 	}
 	else if (!useSharedWindowsTerminalSettings && wcscmp(defaultCfgPath, L"") != 0) // Do not copy default terminal settings into `/c` Windows Terminal roots.
 	{
 		if ( ! CopyFile(defaultCfgPath, userCfgPath, FALSE))
 		{
-			if (PathFileExists(windowsTerminalDir))
+			if (isWindowsTerminal)
 			{
 				MessageBox(NULL,
 					(GetLastError() == ERROR_ACCESS_DENIED)
@@ -517,7 +493,6 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 				exit(1);
 			}
 		}
-		PathCombine(userConEmuCfgPath, userConfigDirPath, L"user-ConEmu.xml");
 	}
 
 	GetEnvironmentVariable(L"ProgramFiles", programFiles, MAX_PATH);
@@ -529,11 +504,11 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	SYSTEM_INFO sysInfo;
 	GetNativeSystemInfo(&sysInfo);
-	if (PathFileExists(windowsTerminalDir))
+	if (isWindowsTerminal)
 	{
 		PathCombine(terminalPath, exeDir, L"vendor\\windows-terminal\\WindowsTerminal.exe");
 	}
-	else if (PathFileExists(conEmuDir))
+	else if (isConEmu)
 	{
 		swprintf_s(args, L"%s /Icon \"%s\"", args, icoPath);
 		swprintf_s(args, L"%s /title \"%s\"", args, cmderTitle.c_str());
@@ -568,7 +543,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	if (!streqi(cmderStart.c_str(), L""))
 	{
-		if (PathFileExists(windowsTerminalDir)) {
+		if (isWindowsTerminal) {
 			swprintf_s(args, L"%s -d \"%s\"", args, cmderStart.c_str());
 		}
 		else
@@ -579,15 +554,29 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	if (is_single_mode)
 	{
-		if (!PathFileExists(windowsTerminalDir)) {
+		if (!isWindowsTerminal) {
 			swprintf_s(args, L"%s /single", args);
 		}
 	}
 
 	if (cfgRoot.length() != 0)
 	{
-		if (!PathFileExists(windowsTerminalDir)) {
-			swprintf_s(args, L"%s  -loadcfgfile \"%s\"", args, userConEmuCfgPath);
+		if (isConEmu)
+		{
+			if (PathFileExists(cpuCfgPath))
+			{
+				wcscpy_s(selectedTerminalConfigPath, cpuCfgPath);
+			}
+			else if (use_user_cfg && PathFileExists(userCfgPath))
+			{
+				wcscpy_s(selectedTerminalConfigPath, userCfgPath);
+			}
+			else
+			{
+				wcscpy_s(selectedTerminalConfigPath, cfgPath);
+			}
+
+			swprintf_s(args, L"%s  -loadcfgfile \"%s\"", args, selectedTerminalConfigPath);
 		}
 	}
 
@@ -606,10 +595,10 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	if (!streqi(cmderTask.c_str(), L""))
 	{
-		if (PathFileExists(windowsTerminalDir)) {
+		if (isWindowsTerminal) {
 			swprintf_s(args, L"%s -p \"%s\"", args, cmderTask.c_str());
 		}
-		else if (PathFileExists(conEmuDir))
+		else if (isConEmu)
 		{
 			swprintf_s(args, L"%s /run {%s}", args, cmderTask.c_str());
 		}
@@ -641,29 +630,6 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		SetEnvironmentVariable(L"CMDER_USER_BIN", userBinDirPath);
 	}
 
-	// Try to find m'intty.exe' so ConEmu can launch using %MINTTY_EXE% in external Git for Cmder Mini.
-	// See: https://github.com/Maximus5/ConEmu/issues/2559 for why this is commented.
-
-	/*
-	if (PathFileExists(vendoredGit))
-	{
-		PathCombine(minTTYPath, vendoredGit, L"usr\\bin\\mintty.exe");
-		SetEnvironmentVariable(L"MINTTY_EXE", minTTYPath);
-	}
-	else if (PathFileExists(amdx64Git))
-	{
-		PathCombine(minTTYPath, amdx64Git, L"usr\\bin\\mintty.exe");
-		SetEnvironmentVariable(L"MINTTY_EXE", minTTYPath);
-	}
-	else if (PathFileExists(x86Git))
-	{
-		PathCombine(minTTYPath, x86Git, L"usr\\bin\\mintty.exe");
-		SetEnvironmentVariable(L"MINTTY_EXE", minTTYPath);
-	}
-	*/
-
-	// Ensure EnvironmentVariables are propagated.
-
 	STARTUPINFO si = { 0 };
 
 	si.cb = sizeof(STARTUPINFO);
@@ -675,11 +641,11 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 
 	if (!CreateProcess(terminalPath, args, NULL, NULL, false, 0, NULL, NULL, &si, &pi))
 	{
-		if (PathFileExists(windowsTerminalDir))
+		if (isWindowsTerminal)
 		{
 			MessageBox(NULL, _T("Unable to create the Windows Terminal process!"), _T("Error"), MB_OK);
 		}
-		else if (PathFileExists(conEmuDir))
+		else if (isConEmu)
 		{
 			MessageBox(NULL, _T("Unable to create the ConEmu process!"), _T("Error"), MB_OK);
 		}
@@ -689,6 +655,9 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 		}
 		return;
 	}
+
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
 }
 
 bool IsUserOnly(std::wstring opt)
@@ -737,7 +706,10 @@ void RegisterShellMenu(std::wstring opt, wchar_t* keyBaseName, std::wstring cfgR
 	wchar_t exePath[MAX_PATH] = { 0 };
 	wchar_t icoPath[MAX_PATH] = { 0 };
 
-	GetModuleFileName(NULL, exePath, sizeof(exePath));
+	if (!GetModulePath(exePath, _countof(exePath)))
+	{
+		ShowErrorAndExit(GetLastError(), __WFUNCTION__, __LINE__);
+	}
 
 	wchar_t commandStr[MAX_PATH + 20] = { 0 };
 	wchar_t baseCommandStr[MAX_PATH + 20] = { 0 };
@@ -817,35 +789,35 @@ cmderOptions GetOption()
 	LPWSTR *szArgList;
 	int argCount;
 
-	wchar_t windowsTerminalDir[MAX_PATH] = { 0 };
-	wchar_t conEmuDir[MAX_PATH] = { 0 };
-	wchar_t vendorDir[MAX_PATH] = { 0 };
 	wchar_t exeDir[MAX_PATH] = { 0 };
 
-	GetModuleFileName(NULL, exeDir, sizeof(exeDir));
-	PathRemoveFileSpec(exeDir);
-
-	PathCombine(vendorDir, exeDir, L"vendor");
-	PathCombine(windowsTerminalDir, vendorDir, L"windows-terminal");
-	PathCombine(conEmuDir, vendorDir, L"ConEmu-Maximus5");
+	if (!GetModuleDirectory(exeDir, _countof(exeDir)))
+	{
+		MessageBox(NULL, L"Unable to determine the Cmder executable path.", MB_TITLE, MB_ICONSTOP);
+		cmderOptions.error = true;
+		return cmderOptions;
+	}
+	const TerminalKind terminal = DetectTerminal(exeDir);
+	const bool isConEmu = terminal == TerminalKind::ConEmu;
 
 	szArgList = CommandLineToArgvW(GetCommandLine(), &argCount);
 
 	for (int i = 1; i < argCount; i++)
 	{
-		// MessageBox(NULL, szArgList[i], L"Arglist contents", MB_OK);
-		if (cmderOptions.error == false) {
+		if (!cmderOptions.error)
+		{
+			const bool hasValue = i + 1 < argCount && szArgList[i + 1][0] != '/';
+
 			if (_wcsicmp(L"/c", szArgList[i]) == 0)
 			{
 				TCHAR userProfile[MAX_PATH];
-				const DWORD ret = GetEnvironmentVariable(L"USERPROFILE", userProfile, MAX_PATH);
-
+				GetEnvironmentVariable(L"USERPROFILE", userProfile, _countof(userProfile));
 				wchar_t cmderCfgRoot[MAX_PATH] = { 0 };
 				PathCombine(cmderCfgRoot, userProfile, L"cmder_cfg");
 
 				cmderOptions.cmderCfgRoot = cmderCfgRoot;
 
-				if (szArgList[i + 1] != NULL && szArgList[i + 1][0] != '/')
+				if (hasValue)
 				{
 					cmderOptions.cmderCfgRoot = szArgList[i + 1];
 					i++;
@@ -853,13 +825,11 @@ cmderOptions GetOption()
 			}
 			else if (_wcsicmp(L"/start", szArgList[i]) == 0)
 			{
-				int len = wcslen(szArgList[i + 1]);
-				if (wcscmp(&szArgList[i + 1][len - 1], L"\"") == 0)
+				if (!hasValue)
 				{
-					szArgList[i + 1][len - 1] = '\0';
+					cmderOptions.error = true;
 				}
-
-				if (PathFileExists(szArgList[i + 1]))
+				else if (PathFileExists(szArgList[i + 1]))
 				{
 					cmderOptions.cmderStart = szArgList[i + 1];
 					i++;
@@ -871,7 +841,7 @@ cmderOptions GetOption()
 			}
 			else if (_wcsicmp(L"/task", szArgList[i]) == 0)
 			{
-				if (i + 1 < argCount && szArgList[i + 1][0] != '/')
+				if (hasValue)
 				{
 					cmderOptions.cmderTask = szArgList[i + 1];
 					i++;
@@ -885,21 +855,21 @@ cmderOptions GetOption()
 			{
 				cmderOptions.cmderTask = szArgList[i];
 			}
-			else if (_wcsicmp(L"/title", szArgList[i]) == 0 && !PathFileExists(windowsTerminalDir) && PathFileExists(conEmuDir))
+			else if (_wcsicmp(L"/title", szArgList[i]) == 0 && isConEmu && hasValue)
 			{
 				cmderOptions.cmderTitle = szArgList[i + 1];
 				i++;
 			}
-			else if (_wcsicmp(L"/icon", szArgList[i]) == 0 && !PathFileExists(windowsTerminalDir) && PathFileExists(conEmuDir))
+			else if (_wcsicmp(L"/icon", szArgList[i]) == 0 && isConEmu && hasValue)
 			{
 				cmderOptions.cmderIcon = szArgList[i + 1];
 				i++;
 			}
-			else if (_wcsicmp(L"/single", szArgList[i]) == 0 && !PathFileExists(windowsTerminalDir) && PathFileExists(conEmuDir))
+			else if (_wcsicmp(L"/single", szArgList[i]) == 0 && isConEmu)
 			{
 				cmderOptions.cmderSingle = true;
 			}
-			else if (_wcsicmp(L"/m", szArgList[i]) == 0 && !PathFileExists(windowsTerminalDir) && PathFileExists(conEmuDir))
+			else if (_wcsicmp(L"/m", szArgList[i]) == 0 && isConEmu)
 			{
 				cmderOptions.cmderUserCfg = false;
 			}
@@ -907,7 +877,7 @@ cmderOptions GetOption()
 			{
 				cmderOptions.registerApp = true;
 				cmderOptions.unRegisterApp = false;
-				if (szArgList[i + 1] != NULL)
+				if (hasValue)
 				{
 					if (_wcsicmp(L"all", szArgList[i + 1]) == 0 || _wcsicmp(L"user", szArgList[i + 1]) == 0)
 					{
@@ -920,7 +890,7 @@ cmderOptions GetOption()
 			{
 				cmderOptions.unRegisterApp = true;
 				cmderOptions.registerApp = false;
-				if (szArgList[i + 1] != NULL)
+				if (hasValue)
 				{
 					if (_wcsicmp(L"all", szArgList[i + 1]) == 0 || _wcsicmp(L"user", szArgList[i + 1]) == 0)
 					{
@@ -929,8 +899,8 @@ cmderOptions GetOption()
 					}
 				}
 			}
-			/* Used for passing arguments to conemu prog */
-			else if (_wcsicmp(L"/x", szArgList[i]) == 0)
+			// Pass a terminal-specific argument through to the selected emulator.
+			else if (_wcsicmp(L"/x", szArgList[i]) == 0 && hasValue)
 			{
 				cmderOptions.cmderTerminalArgs = szArgList[i + 1];
 				i++;
@@ -948,12 +918,6 @@ cmderOptions GetOption()
 			}
 			else if (cmderOptions.cmderStart == L"")
 			{
-				int len = wcslen(szArgList[i]);
-				if (wcscmp(&szArgList[i][len - 1], L"\"") == 0)
-				{
-					szArgList[i][len - 1] = '\0';
-				}
-
 				if (PathFileExists(szArgList[i]))
 				{
 					cmderOptions.cmderStart = szArgList[i];
@@ -971,7 +935,7 @@ cmderOptions GetOption()
 		}
 	}
 
-	if (!PathFileExists(windowsTerminalDir) && !PathFileExists(conEmuDir) && streqi(cmderOptions.cmderTask.c_str(), L""))
+	if (terminal == TerminalKind::Console && streqi(cmderOptions.cmderTask.c_str(), L""))
 	{
 		cmderOptions.cmderTask = L"cmder";
 	}
@@ -1002,16 +966,18 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	cmderOptions cmderOptions = GetOption();
 
-	wchar_t windowsTerminalDir[MAX_PATH] = { 0 };
 	wchar_t exeDir[MAX_PATH] = { 0 };
 
-	GetModuleFileName(NULL, exeDir, sizeof(exeDir));
-	PathRemoveFileSpec(exeDir);
-	PathCombine(windowsTerminalDir, exeDir, L"vendor\\windows-terminal");
+	if (!GetModuleDirectory(exeDir, _countof(exeDir)))
+	{
+		MessageBox(NULL, L"Unable to determine the Cmder executable path.", MB_TITLE, MB_ICONSTOP);
+		return 1;
+	}
+	const TerminalKind terminal = DetectTerminal(exeDir);
 
 	if (cmderOptions.registerApp == true)
 	{
-		if (PathFileExists(windowsTerminalDir))
+		if (terminal == TerminalKind::WindowsTerminal)
 		{
 			RegisterShellMenu(cmderOptions.cmderRegScope, SHELL_MENU_REGISTRY_PATH_BACKGROUND, cmderOptions.cmderCfgRoot, cmderOptions.cmderSingle);
 			RegisterShellMenu(cmderOptions.cmderRegScope, SHELL_MENU_REGISTRY_PATH_LISTITEM, cmderOptions.cmderCfgRoot, cmderOptions.cmderSingle);
