@@ -216,6 +216,16 @@ static void TestArgumentParsing()
     testExecutable = root + L"\\Cmder.exe";
 
     for (int terminal = 0; terminal < 3; ++terminal) {
+        if (terminal == 0) {
+            for (const wchar_t* arguments : {L"conemu", L"windows-terminal"}) {
+                const int dialogs = helpDialogs;
+                lastMessage.clear();
+                Check(Parse(arguments).error, "Missing requested terminal did not produce an error");
+                Check(lastMessage.find(L"requested bundled") != std::wstring::npos,
+                    "Missing requested terminal did not report its availability");
+                Check(helpDialogs == dialogs, "Missing requested terminal displayed generic help");
+            }
+        }
         if (terminal == 1) {
             Check(CreateDirectoryW(conemu.c_str(), NULL) != 0, "Could not create ConEmu fixture");
             WriteFixture(vendor + L"\\ConEmu.xml.default", "<settings />");
@@ -242,6 +252,19 @@ static void TestArgumentParsing()
         if (terminal == 2) {
             Check(CreateDirectoryW(windowsTerminal.c_str(), NULL) != 0, "Could not create Windows Terminal fixture");
             WriteFixture(windowsTerminal + L"\\WindowsTerminal.exe", "");
+
+            auto options = Parse(L"conemu /task Custom");
+            Check(!options.error && options.terminalSelection == TerminalSelection::ConEmu,
+                "ConEmu terminal override did not parse");
+            Check(_tWinMain(NULL, NULL, NULL, 0) == 0 && lastTerminalPath == conemu + L"\\ConEmu64.exe",
+                "ConEmu terminal override did not force ConEmu");
+
+            options = Parse(L"windows-terminal /task Custom");
+            Check(!options.error && options.terminalSelection == TerminalSelection::WindowsTerminal,
+                "Windows Terminal override did not parse");
+            Check(_tWinMain(NULL, NULL, NULL, 0) == 0 &&
+                lastTerminalPath == windowsTerminal + L"\\WindowsTerminal.exe",
+                "Windows Terminal override did not force Windows Terminal");
         }
         for (const wchar_t* arguments : {L"/start", L"/start \"\"", L"/task", L"/task \"\"",
                 L"/task --", L"/x", L"/x \"\"", L"\"\""}) {
@@ -303,7 +326,7 @@ static void TestArgumentParsing()
     StartCmder(L"", false, L"", L"", L"", userRoot);
     Check(ReadFixture(settings) == "{\"source\":\"edited shared settings\"}", "Subsequent /c launch overwrote shared settings");
     Check(ReadFixture(userSettings) == "{\"source\":\"user root\"}", "Subsequent /c launch changed user terminal settings");
-    Check(terminalLaunches == 6, "Startup did not reach the terminal launch boundary");
+    Check(terminalLaunches == 8, "Startup did not reach the terminal launch boundary");
 
     Check(DeleteFileW(userSettings.c_str()) != 0, "Could not remove user settings fixture");
     Check(DeleteFileW(machineConfig.c_str()) != 0,

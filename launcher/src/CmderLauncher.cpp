@@ -114,13 +114,20 @@ enum class TerminalKind
 	Console
 };
 
-TerminalKind DetectTerminal(const wchar_t * exeDir)
+enum class TerminalSelection
+{
+	Auto,
+	WindowsTerminal,
+	ConEmu
+};
+
+TerminalKind DetectTerminal(const wchar_t * exeDir, TerminalSelection selection = TerminalSelection::Auto)
 {
 	wchar_t terminalPath[MAX_PATH] = { 0 };
 
 	// Preserve Cmder's Windows Terminal-first preference when both emulators are bundled.
 	PathCombine(terminalPath, exeDir, L"vendor\\windows-terminal\\WindowsTerminal.exe");
-	if (PathFileExists(terminalPath))
+	if (selection != TerminalSelection::ConEmu && PathFileExists(terminalPath))
 	{
 		return TerminalKind::WindowsTerminal;
 	}
@@ -131,7 +138,7 @@ TerminalKind DetectTerminal(const wchar_t * exeDir)
 		sysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64
 			? L"vendor\\conemu-maximus5\\ConEmu64.exe"
 			: L"vendor\\conemu-maximus5\\ConEmu.exe");
-	if (PathFileExists(terminalPath))
+	if (selection != TerminalSelection::WindowsTerminal && PathFileExists(terminalPath))
 	{
 		return TerminalKind::ConEmu;
 	}
@@ -188,7 +195,7 @@ std::wstring NormalizeTaskName(std::wstring taskName)
 	return taskName;
 }
 
-void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstring taskName = L"", std::wstring title = L"", std::wstring iconPath = L"", std::wstring cfgRoot = L"", bool use_user_cfg = true, std::wstring conemu_args = L"")
+void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstring taskName = L"", std::wstring title = L"", std::wstring iconPath = L"", std::wstring cfgRoot = L"", bool use_user_cfg = true, std::wstring conemu_args = L"", TerminalSelection terminalSelection = TerminalSelection::Auto)
 {
 	#if USE_TASKBAR_API
 		wchar_t appId[MAX_PATH] = { 0 };
@@ -279,7 +286,7 @@ void StartCmder(std::wstring  path = L"", bool is_single_mode = false, std::wstr
 	PathCombine(windowsTerminalDir, vendorDir, L"windows-terminal");
 	PathCombine(conEmuDir, vendorDir, L"conemu-maximus5");
 	GetEnvironmentVariable(L"WINDIR", winDir, MAX_PATH);
-	const TerminalKind terminal = DetectTerminal(exeDir);
+	const TerminalKind terminal = DetectTerminal(exeDir, terminalSelection);
 	const bool isWindowsTerminal = terminal == TerminalKind::WindowsTerminal;
 	const bool isConEmu = terminal == TerminalKind::ConEmu;
 	// Windows Terminal cannot select a settings file per launch, so `/c` roots
@@ -831,6 +838,7 @@ struct cmderOptions
 	std::wstring cmderIcon = L"";
 	std::wstring cmderRegScope = L"USER";
 	std::wstring cmderTerminalArgs = L"";
+	TerminalSelection terminalSelection = TerminalSelection::Auto;
 	bool cmderSingle = false;
 	bool cmderUserCfg = true;
 	bool registerApp = false;
@@ -849,8 +857,6 @@ cmderOptions GetOption()
 
 	GetExecutablePath(exeDir);
 	PathRemoveFileSpec(exeDir);
-	const TerminalKind terminal = DetectTerminal(exeDir);
-	const bool isConEmu = terminal == TerminalKind::ConEmu;
 
 	szArgList = CommandLineToArgvW(GetCommandLine(), &argCount);
 	if (szArgList == NULL)
@@ -859,7 +865,30 @@ cmderOptions GetOption()
 		return cmderOptions;
 	}
 
-	for (int i = 1; i < argCount; i++)
+	// Match Cmder.bat: terminal selectors are recognized only as the first argument.
+	int firstOptionIndex = 1;
+	if (argCount > 1 && _wcsicmp(L"conemu", szArgList[1]) == 0)
+	{
+		cmderOptions.terminalSelection = TerminalSelection::ConEmu;
+		firstOptionIndex++;
+	}
+	else if (argCount > 1 && _wcsicmp(L"windows-terminal", szArgList[1]) == 0)
+	{
+		cmderOptions.terminalSelection = TerminalSelection::WindowsTerminal;
+		firstOptionIndex++;
+	}
+
+	const TerminalKind terminal = DetectTerminal(exeDir, cmderOptions.terminalSelection);
+	const bool isConEmu = terminal == TerminalKind::ConEmu;
+	if (cmderOptions.terminalSelection != TerminalSelection::Auto && terminal == TerminalKind::Console)
+	{
+		cmderOptions.error = true;
+		cmderOptions.errorMessage = cmderOptions.terminalSelection == TerminalSelection::ConEmu
+			? L"The requested bundled ConEmu terminal is not available."
+			: L"The requested bundled Windows Terminal is not available.";
+	}
+
+	for (int i = firstOptionIndex; i < argCount; i++)
 	{
 		// MessageBox(NULL, szArgList[i], L"Arglist contents", MB_OK);
 		if (cmderOptions.error == false) {
@@ -1076,7 +1105,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	GetExecutablePath(exeDir);
 	PathRemoveFileSpec(exeDir);
-	const TerminalKind terminal = DetectTerminal(exeDir);
+	const TerminalKind terminal = DetectTerminal(exeDir, cmderOptions.terminalSelection);
 
 	if (cmderOptions.registerApp == true)
 	{
@@ -1104,7 +1133,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	}
 	else
 	{
-		StartCmder(cmderOptions.cmderStart, cmderOptions.cmderSingle, cmderOptions.cmderTask, cmderOptions.cmderTitle, cmderOptions.cmderIcon, cmderOptions.cmderCfgRoot, cmderOptions.cmderUserCfg, cmderOptions.cmderTerminalArgs);
+		StartCmder(cmderOptions.cmderStart, cmderOptions.cmderSingle, cmderOptions.cmderTask, cmderOptions.cmderTitle, cmderOptions.cmderIcon, cmderOptions.cmderCfgRoot, cmderOptions.cmderUserCfg, cmderOptions.cmderTerminalArgs, cmderOptions.terminalSelection);
 	}
 
 	return 0;
