@@ -20,6 +20,7 @@ static int terminalLaunches = 0;
 static WORD nativeArchitecture = PROCESSOR_ARCHITECTURE_AMD64;
 static std::wstring lastTerminalPath;
 static std::wstring lastTerminalArguments;
+static std::wstring lastMessage;
 
 [[noreturn]] static void TestExit(int code) { throw LauncherExit{code}; }
 static LPWSTR WINAPI TestGetCommandLineW() { return &testCommandLine[0]; }
@@ -37,7 +38,11 @@ static DWORD WINAPI TestGetModuleFileNameW(HMODULE, LPWSTR path, DWORD capacity)
     wcscpy_s(path, capacity, testExecutable.c_str());
     return static_cast<DWORD>(testExecutable.length());
 }
-static int WINAPI TestMessageBoxW(HWND, LPCWSTR, LPCWSTR, UINT) { return IDOK; }
+static int WINAPI TestMessageBoxW(HWND, LPCWSTR message, LPCWSTR, UINT)
+{
+    lastMessage = message;
+    return IDOK;
+}
 static HRESULT WINAPI TestTaskDialogIndirect(const TASKDIALOGCONFIG*, int*, int*, BOOL*)
 {
     ++helpDialogs;
@@ -269,6 +274,17 @@ static void TestArgumentParsing()
             Check(!options.error && options.cmderTask == L"bash" && options.cmderSingle &&
                 !options.cmderUserCfg && options.cmderTitle == L"Custom" && options.cmderIcon == L"custom.ico",
                 "ConEmu arguments or shorthand task consumed another option");
+        }
+        if (terminal == 2) {
+            for (const wchar_t* arguments : {L"/title Custom", L"/icon custom.ico", L"/single", L"/m"}) {
+                const int dialogs = helpDialogs;
+                lastMessage.clear();
+                Check(Parse(arguments).error, "Windows Terminal accepted a ConEmu-only option");
+                Check(lastMessage.find(L"supported only when Cmder launches ConEmu") != std::wstring::npos &&
+                    lastMessage.find(L"Windows Terminal is currently selected") != std::wstring::npos,
+                    "Windows Terminal did not report the unsupported ConEmu option");
+                Check(helpDialogs == dialogs, "Unsupported ConEmu option displayed generic help");
+            }
         }
     }
 

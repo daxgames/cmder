@@ -836,6 +836,7 @@ struct cmderOptions
 	bool registerApp = false;
 	bool unRegisterApp = false;
 	bool error = false;
+	std::wstring errorMessage = L"";
 };
 
 cmderOptions GetOption()
@@ -930,23 +931,37 @@ cmderOptions GetOption()
 			{
 				cmderOptions.cmderTask = szArgList[i];
 			}
-			else if (_wcsicmp(L"/title", szArgList[i]) == 0 && isConEmu)
+			else if (_wcsicmp(L"/title", szArgList[i]) == 0 || _wcsicmp(L"/icon", szArgList[i]) == 0 ||
+				_wcsicmp(L"/single", szArgList[i]) == 0 || _wcsicmp(L"/m", szArgList[i]) == 0)
 			{
-				cmderOptions.cmderTitle = szArgList[i + 1];
-				i++;
-			}
-			else if (_wcsicmp(L"/icon", szArgList[i]) == 0 && isConEmu)
-			{
-				cmderOptions.cmderIcon = szArgList[i + 1];
-				i++;
-			}
-			else if (_wcsicmp(L"/single", szArgList[i]) == 0 && isConEmu)
-			{
-				cmderOptions.cmderSingle = true;
-			}
-			else if (_wcsicmp(L"/m", szArgList[i]) == 0 && isConEmu)
-			{
-				cmderOptions.cmderUserCfg = false;
+				if (!isConEmu)
+				{
+					cmderOptions.error = true;
+					cmderOptions.errorMessage = std::wstring(szArgList[i]) +
+						L" is supported only when Cmder launches ConEmu. " +
+						(terminal == TerminalKind::WindowsTerminal ? L"Windows Terminal" : L"the console") +
+						L" is currently selected.";
+					break;
+				}
+
+				if (_wcsicmp(L"/title", szArgList[i]) == 0)
+				{
+					cmderOptions.cmderTitle = szArgList[i + 1];
+					i++;
+				}
+				else if (_wcsicmp(L"/icon", szArgList[i]) == 0)
+				{
+					cmderOptions.cmderIcon = szArgList[i + 1];
+					i++;
+				}
+				else if (_wcsicmp(L"/single", szArgList[i]) == 0)
+				{
+					cmderOptions.cmderSingle = true;
+				}
+				else
+				{
+					cmderOptions.cmderUserCfg = false;
+				}
 			}
 			else if (_wcsicmp(L"/register", szArgList[i]) == 0)
 			{
@@ -1022,12 +1037,19 @@ cmderOptions GetOption()
 
 	if (cmderOptions.error == true)
 	{
-		wchar_t validOptions[512];
-		HMODULE hMod = GetModuleHandle(NULL);
-		LoadString(hMod, IDS_SWITCHES, validOptions, 512);
+		if (!cmderOptions.errorMessage.empty())
+		{
+			MessageBox(NULL, cmderOptions.errorMessage.c_str(), MB_TITLE, MB_OK | MB_ICONERROR);
+		}
+		else
+		{
+			wchar_t validOptions[512];
+			HMODULE hMod = GetModuleHandle(NULL);
+			LoadString(hMod, IDS_SWITCHES, validOptions, 512);
 
-		// display list of valid options on unrecognized parameter
-		TaskDialogOpen( L"Unrecognized parameter.", validOptions );
+			// display list of valid options on unrecognized parameter
+			TaskDialogOpen( L"Unrecognized parameter.", validOptions );
+		}
 	}
 
 	LocalFree(szArgList);
