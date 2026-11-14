@@ -11,7 +11,8 @@
 .EXAMPLE
     .\build.ps1
 
-    Executes the default build for Cmder; ConEmu, clink. This is equivalent to the "minimum" style package in the releases
+    Build all configured terminal-emulator profiles and their vendor components.
+    See scripts/package-profiles.json for included vendors and package variants.
 .EXAMPLE
     .\build.ps1 -Compile
 
@@ -56,7 +57,8 @@ Param(
     # Using this option will skip all downloads, if you only need to build launcher
     [switch]$noVendor,
 
-    # Using this option will specify the emulator to use [none, all, conemu-maximus5, or windows-terminal]
+    # Select a terminal-emulator profile [none, all, conemu-maximus5, or windows-terminal].
+    # Configure included vendors and package variants in scripts/package-profiles.json.
     [string]$Terminal = 'all',
 
     # Build launcher if you have MSBuild tools installed
@@ -118,6 +120,10 @@ if (-not $noVendor) {
 
     # Get the vendor sources
     $sources = Get-Content $sourcesPath | Out-String | ConvertFrom-Json
+    # Validate the entire custom manifest before any vendor backup or deletion.
+    foreach ($source in $sources) {
+        Assert-CmderVendorName $source.name
+    }
     $includedVendors = Get-CmderTerminalIncludedVendors -Terminal $Terminal
 
     Push-Location -Path $saveTo
